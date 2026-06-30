@@ -556,7 +556,7 @@ function PricingSection() {
   const plans = [
     {
       name: 'Essentiel',
-      price: '490',
+      price: '149',
       desc: 'Pour les TPE et cabinets jusqu\'à 20 collaborateurs',
       popular: false,
       features: [
@@ -576,7 +576,7 @@ function PricingSection() {
     },
     {
       name: 'Premium',
-      price: '890',
+      price: '349',
       desc: 'Pour les PME et cabinets jusqu\'à 100 collaborateurs',
       popular: true,
       features: [
