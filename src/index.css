@@ -157,3 +157,73 @@ input:focus, textarea:focus {
   border-color: #2563EB;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
+
+/* ─── Legal pages — readable long-form text on a slightly lighter surface ─── */
+.legal-content {
+  color: #CBD5E1;
+  font-size: 0.9375rem;
+  line-height: 1.75;
+}
+
+.legal-content h2 {
+  color: #F8FAFC;
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-top: 2.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.legal-content h2:first-child {
+  margin-top: 0;
+}
+
+.legal-content h3 {
+  color: #F8FAFC;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.legal-content p {
+  margin-bottom: 1rem;
+}
+
+.legal-content ul {
+  margin: 0 0 1rem 0;
+  padding-left: 1.25rem;
+  list-style: disc;
+}
+
+.legal-content li {
+  margin-bottom: 0.4rem;
+}
+
+.legal-content li::marker {
+  color: #2563EB;
+}
+
+.legal-content strong {
+  color: #F8FAFC;
+  font-weight: 600;
+}
+
+.legal-content a {
+  color: #2563EB;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.legal-content a:hover {
+  color: #06B6D4;
+}
+
+.legal-content .legal-placeholder {
+  color: #F59E0B;
+  font-weight: 600;
+}
+
+.legal-content .legal-meta {
+  color: #94A3B8;
+  font-size: 0.875rem;
+}
