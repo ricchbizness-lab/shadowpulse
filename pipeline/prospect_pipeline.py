@@ -79,6 +79,36 @@ def guess_domain(nom: str, siren: str) -> list[str]:
     return [f"{clean}.fr", f"{clean}.com", f"cabinet-{clean}.fr"]
 
 
+def hunter_domain_finder(nom: str, api_key: str) -> Optional[str]:
+    """
+    Appelle Hunter.io /v2/domain-search?company= pour trouver le domaine
+    d'une entreprise à partir de son nom.
+
+    ATTENTION : consomme 1 crédit de recherche par appel (plan Free = 50/mois).
+    À utiliser uniquement comme fallback via --hunter-domain-fallback.
+
+    Retourne le domaine si Hunter en trouve un avec au moins 1 email indexé,
+    None sinon.
+    """
+    if not api_key:
+        return None
+    try:
+        resp = requests.get(
+            "https://api.hunter.io/v2/domain-search",
+            params={"company": nom, "api_key": api_key, "limit": 1},
+            timeout=8,
+        )
+        resp.raise_for_status()
+        data = resp.json().get("data", {})
+        domain = data.get("domain")
+        # On ne retient que si Hunter a trouvé au moins 1 email (confiance > 0)
+        if domain and (data.get("emails") or data.get("total", 0) > 0):
+            return domain
+        return None
+    except Exception:
+        return None
+
+
 def verify_domain(domain: str, timeout: int = 5) -> bool:
     for scheme in ("https", "http"):
         try:
@@ -167,12 +197,20 @@ def extract_cabinet(result: dict, dept: str) -> Optional[Cabinet]:
 
 def run(dept: str, max_results: int = 200, dry_run: bool = False,
         verify_domains: bool = True, out_file: Optional[str] = None,
-        inclure_effectif_inconnu: bool = False) -> list[Cabinet]:
+        inclure_effectif_inconnu: bool = False,
+        hunter_domain_fallback: bool = False) -> list[Cabinet]:
+
+    hunter_key = os.environ.get("HUNTER_API_KEY", "")
 
     print(f"[*] Sourcing cabinets comptables — département {dept} (NAF {NAF_CODE})")
     print(f"    Mode : {'DRY-RUN' if dry_run else 'production'} | max={max_results}")
     print(f"    Filtres API : tranche_effectif_salarie={TRANCHES_API_PARAM}")
     print(f"    Effectifs inconnus (NN) : {'inclus' if inclure_effectif_inconnu else 'exclus'}")
+    if hunter_domain_fallback:
+        if hunter_key:
+            print(f"    Hunter domain fallback : ACTIVÉ (⚠ 1 crédit/cabinet sans domaine vérifié)")
+        else:
+            print(f"    Hunter domain fallback : demandé mais HUNTER_API_KEY absente — ignoré")
 
     # ── Phase 1 : récupération des tranches cibles via l'API ──────────────────
     cabinets: list[Cabinet] = []
@@ -261,19 +299,40 @@ def run(dept: str, max_results: int = 200, dry_run: bool = False,
     # ── Devinage et vérification de domaine ───────────────────────────────────
     if verify_domains and not dry_run:
         print(f"[*] Vérification des domaines ({len(cabinets)} cabinets) …")
+        hunter_fallback_used = 0
+        hunter_fallback_found = 0
+
         for i, cab in enumerate(cabinets):
             candidates = guess_domain(cab.nom, cab.siren)
             cab.domaine_guess = candidates[0]
+
+            # Étape 1 : heuristique locale (slug → .fr/.com, vérif HTTP)
             for domain in candidates:
                 if verify_domain(domain):
                     cab.domaine_guess = domain
                     cab.domaine_verifie = True
                     break
+
+            # Étape 2 : fallback Hunter Domain Search si heuristique échoue
+            if not cab.domaine_verifie and hunter_domain_fallback and hunter_key:
+                hunter_fallback_used += 1
+                found = hunter_domain_finder(cab.nom, hunter_key)
+                if found and verify_domain(found):
+                    cab.domaine_guess = found
+                    cab.domaine_verifie = True
+                    hunter_fallback_found += 1
+                time.sleep(0.5)  # throttle Hunter
+
             if (i + 1) % 10 == 0:
                 print(f"    {i+1}/{len(cabinets)} vérifiés …")
             time.sleep(0.2)
+
         verified = sum(1 for c in cabinets if c.domaine_verifie)
-        print(f"    {verified}/{len(cabinets)} domaine(s) vérifié(s)")
+        print(f"    {verified}/{len(cabinets)} domaine(s) vérifié(s)", end="")
+        if hunter_domain_fallback and hunter_key:
+            print(f"  (dont {hunter_fallback_found}/{hunter_fallback_used} via Hunter fallback, {hunter_fallback_used} crédits consommés)")
+        else:
+            print()
     elif dry_run:
         for cab in cabinets:
             cab.domaine_guess = guess_domain(cab.nom, cab.siren)[0]
@@ -312,6 +371,9 @@ def main():
     parser.add_argument("--out", default="prospects.csv", help="Fichier CSV de sortie")
     parser.add_argument("--inclure-effectif-inconnu", action="store_true",
                         help="Inclure les structures sans effectif Sirene (NN), marquées confiance_effectif=non_renseigne")
+    parser.add_argument("--hunter-domain-fallback", action="store_true",
+                        help="Fallback Hunter.io Domain Search pour les cabinets sans domaine vérifié "
+                             "(⚠ consomme 1 crédit Hunter par cabinet, HUNTER_API_KEY requise)")
     args = parser.parse_args()
 
     run(
@@ -321,6 +383,7 @@ def main():
         verify_domains=not args.no_verify,
         out_file=None if args.dry_run else args.out,
         inclure_effectif_inconnu=args.inclure_effectif_inconnu,
+        hunter_domain_fallback=args.hunter_domain_fallback,
     )
 
 

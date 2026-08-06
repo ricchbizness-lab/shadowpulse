@@ -82,7 +82,8 @@ def flatten_scan(cab: Cabinet, scan: dict) -> dict:
 
 
 def run(dept: str, max_cabinets: int = 100, dry_run: bool = False,
-        out_file: str = "full_results.csv", scan_delay: float = 2.0) -> None:
+        out_file: str = "full_results.csv", scan_delay: float = 2.0,
+        hunter_domain_fallback: bool = False) -> None:
 
     print(f"\n{'='*65}")
     print(f"  ShadowPulse Full Pipeline — dept {dept}")
@@ -97,6 +98,7 @@ def run(dept: str, max_cabinets: int = 100, dry_run: bool = False,
         dry_run=False,
         verify_domains=True,
         out_file=None,
+        hunter_domain_fallback=hunter_domain_fallback,
     )
 
     if not cabinets:
@@ -160,6 +162,8 @@ def main():
     parser.add_argument("--dry-run", action="store_true", help="Prospecting seulement, sans scan ni export")
     parser.add_argument("--out", default="full_results.csv", help="Fichier CSV de sortie (défaut: full_results.csv)")
     parser.add_argument("--delay", type=float, default=2.0, help="Délai (s) entre scans (défaut: 2.0)")
+    parser.add_argument("--hunter-domain-fallback", action="store_true",
+                        help="Fallback Hunter.io pour les cabinets sans domaine heuristique (⚠ 1 crédit/cabinet)")
     args = parser.parse_args()
 
     run(
@@ -167,6 +171,7 @@ def main():
         max_cabinets=args.max,
         dry_run=args.dry_run,
         out_file=args.out,
+        hunter_domain_fallback=args.hunter_domain_fallback,
         scan_delay=args.delay,
     )
 
