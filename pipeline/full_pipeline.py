@@ -39,7 +39,7 @@ from shadow_pulse_demo import scan_domain
 OUTPUT_FIELDS = [
     # Identité cabinet
     "siren", "nom", "dirigeant", "adresse", "code_postal", "ville", "departement",
-    "effectif_tranche", "confiance_effectif", "domaine_guess", "domaine_verifie", "source_url",
+    "effectif_tranche", "confiance_effectif", "domaine_guess", "domaine_confiance", "source_url",
     # Résultats scan
     "exposure_score",
     "ssl_ok", "ssl_days_left", "ssl_error",
@@ -108,15 +108,21 @@ def run(dept: str, max_cabinets: int = 100, dry_run: bool = False,
     # En dry-run : on s'arrête après le prospecting
     if dry_run:
         print(f"\n[DRY-RUN] {len(cabinets)} cabinet(s) sourcés, scan désactivé.")
-        verified = [c for c in cabinets if c.domaine_verifie]
-        print(f"          {len(verified)} avec domaine vérifié (seraient scannés en prod)\n")
+        verified = [c for c in cabinets if c.domaine_confiance != "a_verifier"]
+        print(f"          {len(verified)} avec domaine trouvé (seraient scannés en prod)\n")
         for c in verified[:10]:
-            print(f"  → {c.nom[:45]:<45} {c.domaine_guess}")
+            print(f"  → {c.nom[:45]:<45} {c.domaine_guess}  [{c.domaine_confiance}]")
         return
 
     # ── Étape 2 : Scan d'exposition ────────────────────────────────────────────
-    to_scan = [c for c in cabinets if c.domaine_verifie]
-    print(f"\n[ ÉTAPE 2 ] Scan d'exposition — {len(to_scan)} domaine(s) vérifié(s)\n")
+    to_scan = [c for c in cabinets if c.domaine_confiance != "a_verifier"]
+    douteux_warn = [c for c in to_scan if c.domaine_confiance == "hunter_douteux"]
+    print(f"\n[ ÉTAPE 2 ] Scan d'exposition — {len(to_scan)} domaine(s) avec confiance ≠ a_verifier")
+    if douteux_warn:
+        print(f"            ⚠ {len(douteux_warn)} domaine(s) 'hunter_douteux' inclus — revue manuelle recommandée avant outreach :")
+        for c in douteux_warn:
+            print(f"              {c.nom[:40]} → {c.domaine_guess}")
+    print()
 
     if not to_scan:
         print("[!] Aucun domaine vérifié à scanner.")

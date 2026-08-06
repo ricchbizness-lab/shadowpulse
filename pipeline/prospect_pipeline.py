@@ -17,12 +17,13 @@ Usage :
 
 import argparse
 import csv
+import difflib
 import os
 import re
 import sys
 import time
 from dataclasses import dataclass, asdict, field, fields
-from typing import Optional
+from typing import Optional, Tuple
 
 import requests
 from dotenv import load_dotenv
@@ -62,7 +63,7 @@ class Cabinet:
     effectif_tranche: str
     confiance_effectif: str          # "fiable" | "non_renseigne"
     domaine_guess: str
-    domaine_verifie: bool
+    domaine_confiance: str           # "verifie" | "verifie_hunter" | "a_verifier"
     source_url: str
 
 
@@ -79,7 +80,49 @@ def guess_domain(nom: str, siren: str) -> list[str]:
     return [f"{clean}.fr", f"{clean}.com", f"cabinet-{clean}.fr"]
 
 
-def hunter_domain_finder(nom: str, api_key: str) -> Optional[str]:
+# TLDs acceptés pour les cabinets français — tout autre TLD est rejeté.
+HUNTER_TLD_WHITELIST = {".fr", ".com", ".eu", ".net", ".org"}
+
+# Seuil de similarité slug↔domaine en dessous duquel on passe en "verifie_hunter"
+# sans filtrer : le domaine est retenu mais marqué douteux.
+# Au-dessus : "verifie_hunter" confirmé.
+HUNTER_SIMILARITY_MIN = 0.40
+
+
+def _slug(text: str) -> str:
+    """Réduit un nom ou domaine à ses tokens alphanumériques significatifs."""
+    text = text.lower()
+    # Retire TLD et www
+    text = re.sub(r"\.(fr|com|eu|net|org)$", "", text)
+    text = re.sub(r"^www\.", "", text)
+    # Supprime mots génériques
+    text = re.sub(
+        r"\b(cabinet|sarl|sas|sasu|eurl|sci|sc|expert|expertise|comptable|"
+        r"et|associes?|associés?|services?|conseil|gestion|finance|fiduciaire)\b",
+        " ", text,
+    )
+    text = re.sub(r"[^a-z0-9]", " ", text)
+    return " ".join(text.split())
+
+
+def _tld_ok(domain: str) -> bool:
+    """Couche 1 : TLD dans la whitelist."""
+    for tld in HUNTER_TLD_WHITELIST:
+        if domain.endswith(tld):
+            return True
+    return False
+
+
+def _similarity(nom: str, domain: str) -> float:
+    """Couche 2 : similarité SequenceMatcher entre slugs nom↔domaine."""
+    s_nom = _slug(nom)
+    s_dom = _slug(domain)
+    if not s_nom or not s_dom:
+        return 0.0
+    return difflib.SequenceMatcher(None, s_nom, s_dom).ratio()
+
+
+def hunter_domain_finder(nom: str, api_key: str) -> Optional[Tuple[str, str]]:
     """
     Appelle Hunter.io /v2/domain-search?company= pour trouver le domaine
     d'une entreprise à partir de son nom.
@@ -87,8 +130,12 @@ def hunter_domain_finder(nom: str, api_key: str) -> Optional[str]:
     ATTENTION : consomme 1 crédit de recherche par appel (plan Free = 50/mois).
     À utiliser uniquement comme fallback via --hunter-domain-fallback.
 
-    Retourne le domaine si Hunter en trouve un avec au moins 1 email indexé,
-    None sinon.
+    Retourne (domaine, confiance) où confiance ∈ {"verifie_hunter", "hunter_douteux"},
+    ou None si aucun domaine valide trouvé.
+
+    Deux couches de validation :
+      1. TLD whitelist : rejette immédiatement tout domaine hors .fr/.com/.eu/.net/.org
+      2. Similarité slug : si ratio < HUNTER_SIMILARITY_MIN → "hunter_douteux"
     """
     if not api_key:
         return None
@@ -101,10 +148,20 @@ def hunter_domain_finder(nom: str, api_key: str) -> Optional[str]:
         resp.raise_for_status()
         data = resp.json().get("data", {})
         domain = data.get("domain")
-        # On ne retient que si Hunter a trouvé au moins 1 email (confiance > 0)
-        if domain and (data.get("emails") or data.get("total", 0) > 0):
-            return domain
-        return None
+        if not domain:
+            return None
+        if not (data.get("emails") or data.get("total", 0) > 0):
+            return None
+
+        # Couche 1 : TLD
+        if not _tld_ok(domain):
+            return None
+
+        # Couche 2 : similarité
+        sim = _similarity(nom, domain)
+        confiance = "verifie_hunter" if sim >= HUNTER_SIMILARITY_MIN else "hunter_douteux"
+        return domain, confiance
+
     except Exception:
         return None
 
@@ -187,7 +244,7 @@ def extract_cabinet(result: dict, dept: str) -> Optional[Cabinet]:
             effectif_tranche=tranche,
             confiance_effectif="",   # rempli par run()
             domaine_guess="",
-            domaine_verifie=False,
+            domaine_confiance="a_verifier",
             source_url=f"https://annuaire-entreprises.data.gouv.fr/entreprise/{siren}",
         )
     except Exception as e:
@@ -301,38 +358,45 @@ def run(dept: str, max_results: int = 200, dry_run: bool = False,
         print(f"[*] Vérification des domaines ({len(cabinets)} cabinets) …")
         hunter_fallback_used = 0
         hunter_fallback_found = 0
+        hunter_douteux_count = 0
 
         for i, cab in enumerate(cabinets):
             candidates = guess_domain(cab.nom, cab.siren)
             cab.domaine_guess = candidates[0]
 
-            # Étape 1 : heuristique locale (slug → .fr/.com, vérif HTTP)
+            # Étape 1 : heuristique locale (slug → .fr/.com, vérif TCP/HTTP)
             for domain in candidates:
                 if verify_domain(domain):
                     cab.domaine_guess = domain
-                    cab.domaine_verifie = True
+                    cab.domaine_confiance = "verifie"
                     break
 
             # Étape 2 : fallback Hunter Domain Search si heuristique échoue
-            if not cab.domaine_verifie and hunter_domain_fallback and hunter_key:
+            if cab.domaine_confiance == "a_verifier" and hunter_domain_fallback and hunter_key:
                 hunter_fallback_used += 1
-                found = hunter_domain_finder(cab.nom, hunter_key)
-                if found and verify_domain(found):
-                    cab.domaine_guess = found
-                    cab.domaine_verifie = True
-                    hunter_fallback_found += 1
+                result = hunter_domain_finder(cab.nom, hunter_key)
+                if result:
+                    found_domain, found_confiance = result
+                    if verify_domain(found_domain):
+                        cab.domaine_guess = found_domain
+                        cab.domaine_confiance = found_confiance
+                        hunter_fallback_found += 1
+                        if found_confiance == "hunter_douteux":
+                            hunter_douteux_count += 1
+                            print(f"    ⚠ Hunter douteux : {cab.nom} → {found_domain} (revue manuelle requise)")
                 time.sleep(0.5)  # throttle Hunter
 
             if (i + 1) % 10 == 0:
                 print(f"    {i+1}/{len(cabinets)} vérifiés …")
             time.sleep(0.2)
 
-        verified = sum(1 for c in cabinets if c.domaine_verifie)
-        print(f"    {verified}/{len(cabinets)} domaine(s) vérifié(s)", end="")
+        verifie = sum(1 for c in cabinets if c.domaine_confiance == "verifie")
+        verifie_hunter = sum(1 for c in cabinets if c.domaine_confiance == "verifie_hunter")
+        douteux = sum(1 for c in cabinets if c.domaine_confiance == "hunter_douteux")
+        a_verifier = sum(1 for c in cabinets if c.domaine_confiance == "a_verifier")
+        print(f"    Confiance domaines → verifie: {verifie} | verifie_hunter: {verifie_hunter} | hunter_douteux: {douteux} | a_verifier: {a_verifier}")
         if hunter_domain_fallback and hunter_key:
-            print(f"  (dont {hunter_fallback_found}/{hunter_fallback_used} via Hunter fallback, {hunter_fallback_used} crédits consommés)")
-        else:
-            print()
+            print(f"    Hunter : {hunter_fallback_used} crédits consommés, {hunter_fallback_found} domaines ajoutés (dont {hunter_douteux_count} douteux)")
     elif dry_run:
         for cab in cabinets:
             cab.domaine_guess = guess_domain(cab.nom, cab.siren)[0]
