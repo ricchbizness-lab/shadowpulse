@@ -39,7 +39,7 @@ from shadow_pulse_demo import scan_domain
 OUTPUT_FIELDS = [
     # Identité cabinet
     "siren", "nom", "dirigeant", "adresse", "code_postal", "ville", "departement",
-    "effectif_tranche", "domaine_guess", "domaine_verifie", "source_url",
+    "effectif_tranche", "confiance_effectif", "domaine_guess", "domaine_verifie", "source_url",
     # Résultats scan
     "exposure_score",
     "ssl_ok", "ssl_days_left", "ssl_error",
