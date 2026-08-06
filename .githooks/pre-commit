@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# Hook pre-commit : détecte les clés API dans les fichiers stagés.
+# Activation : git config core.hooksPath .githooks
+#
+# Patterns détectés :
+#   - Chaînes ressemblant à des clés Hunter.io  (32 hex chars)
+#   - Clés HIBP                                 (UUID-like ou 32+ alphanum)
+#   - Variables avec "API_KEY" affectées à une valeur non vide
+
+set -euo pipefail
+
+STAGED=$(git diff --cached --name-only --diff-filter=ACM 2>/dev/null || true)
+
+if [ -z "$STAGED" ]; then
+  exit 0
+fi
+
+FOUND=0
+
+for FILE in $STAGED; do
+  [ -f "$FILE" ] || continue
+
+  # Pattern 1 : HUNTER_API_KEY=<valeur non vide>
+  if git show ":$FILE" 2>/dev/null | grep -Eq 'HUNTER_API_KEY\s*=\s*["\x27]?[A-Za-z0-9]{20,}'; then
+    echo "[pre-commit] BLOQUÉ : clé HUNTER_API_KEY détectée dans $FILE"
+    FOUND=1
+  fi
+
+  # Pattern 2 : HIBP_API_KEY=<valeur non vide>
+  if git show ":$FILE" 2>/dev/null | grep -Eq 'HIBP_API_KEY\s*=\s*["\x27]?[A-Za-z0-9\-]{20,}'; then
+    echo "[pre-commit] BLOQUÉ : clé HIBP_API_KEY détectée dans $FILE"
+    FOUND=1
+  fi
+
+  # Pattern 3 : chaîne de 32 caractères hexadécimaux (format clé Hunter)
+  if git show ":$FILE" 2>/dev/null | grep -Eq '[^A-Za-z0-9][0-9a-f]{32}[^0-9a-f]'; then
+    echo "[pre-commit] ATTENTION : chaîne 32-hex détectée dans $FILE (possible clé API)"
+    FOUND=1
+  fi
+
+  # Pattern 4 : UUID (format clé HIBP)
+  if git show ":$FILE" 2>/dev/null | grep -Eq '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'; then
+    echo "[pre-commit] ATTENTION : UUID détecté dans $FILE (possible clé API)"
+    FOUND=1
+  fi
+
+  # Pattern 5 : fichier .env commité par erreur
+  if echo "$FILE" | grep -Eq '(^|/)\.env$'; then
+    echo "[pre-commit] BLOQUÉ : fichier .env dans les fichiers stagés — retirez-le avec : git reset HEAD $FILE"
+    FOUND=1
+  fi
+done
+
+if [ "$FOUND" -ne 0 ]; then
+  echo ""
+  echo "[pre-commit] Commit annulé. Retirez les clés avant de committer."
+  echo "             Utilisez des variables d'environnement ou un fichier .env (listé dans .gitignore)."
+  exit 1
+fi
+
+exit 0
