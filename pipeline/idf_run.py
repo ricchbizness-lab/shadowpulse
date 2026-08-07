@@ -105,6 +105,22 @@ def phase_sourcing():
         print(f"  {dept} : {len(cabs):>4} cabinets → {n:>3} tirés")
 
     random.shuffle(sample)  # mélange inter-dépts
+
+    # Déduplique par SIREN — un même cabinet peut avoir des établissements
+    # dans plusieurs départements et apparaître dans chaque pool.
+    seen_siren: set[str] = set()
+    sample_deduped = []
+    deduped_count = 0
+    for cab in sample:
+        if cab.siren not in seen_siren:
+            seen_siren.add(cab.siren)
+            sample_deduped.append(cab)
+        else:
+            deduped_count += 1
+    if deduped_count:
+        print(f"  ⚠ {deduped_count} doublon(s) SIREN inter-département retiré(s)")
+    sample = sample_deduped
+
     print(f"\n  Échantillon total à vérifier : {len(sample)} cabinets\n")
 
     # Étape 3 : vérification HTTP heuristique (sans Hunter pour préserver crédits)
@@ -179,7 +195,12 @@ def phase_scan(start: int, end: int, label: str):
     done_results = _load_results()
     already_scanned = {r["siren"] for r in done_results}
 
-    batch = [c for c in pool[start:end] if c.siren not in already_scanned]
+    seen = set(already_scanned)
+    batch = []
+    for c in pool[start:end]:
+        if c.siren not in seen:
+            seen.add(c.siren)
+            batch.append(c)
 
     print(f"\n{'='*65}")
     print(f"  IDF Run — {label} (cabinets {start+1}–{end})")
