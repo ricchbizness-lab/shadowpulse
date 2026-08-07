@@ -224,19 +224,25 @@ def phase_scan(start: int, end: int, label: str):
         if i < len(batch):
             time.sleep(SCAN_DELAY)
 
+    # S'assurer que note_qualite existe sur tous les résultats antérieurs
+    for r in done_results:
+        r.setdefault("note_qualite", "")
+
     all_results = done_results + new_rows
     _save_results(all_results)
 
     # Affichage tableau récap
     sorted_rows = sorted(all_results, key=lambda r: r.get("exposure_score", 0), reverse=True)
     print(f"\n  ── Résultats cumulés ({len(all_results)} scans) ──\n")
-    print(f"  {'NOM':<28} {'DEPT'} {'DOMAINE':<22} {'CONF':<16} {'SCORE':>5} {'XON':>4}")
-    print("  " + "─" * 82)
+    print(f"  {'NOM':<28} {'DEPT'} {'DOMAINE':<22} {'CONF':<16} {'SCORE':>5} {'XON':>4}  NOTE")
+    print("  " + "─" * 95)
     for r in sorted_rows:
         xon = r.get("xon_breach_count", "—")
-        print("  {:<28} {:>4} {:<22} {:<16} {:>5} {:>4}".format(
+        note = r.get("note_qualite", "")
+        note_display = ("⚠ " + note[:40]) if note else ""
+        print("  {:<28} {:>4} {:<22} {:<16} {:>5} {:>4}  {}".format(
             r["nom"][:27], r["departement"], r["domaine_guess"][:21],
-            r["domaine_confiance"], r["exposure_score"], str(xon)))
+            r["domaine_confiance"], r["exposure_score"], str(xon), note_display))
 
     print()
 

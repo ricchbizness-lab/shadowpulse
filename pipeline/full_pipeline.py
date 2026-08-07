@@ -48,6 +48,7 @@ OUTPUT_FIELDS = [
     "hunter_emails_count",
     "xon_breach_count", "xon_breaches", "xon_checked_email",
     "scanned_at",
+    "note_qualite",   # annotation manuelle optionnelle — ne jamais auto-remplir
 ]
 
 
@@ -87,6 +88,8 @@ def flatten_scan(cab: Cabinet, scan: dict) -> dict:
         row["xon_breach_count"] = xon.get("breach_count", 0)
         row["xon_breaches"] = "|".join(xon.get("breaches", []))
         row["xon_checked_email"] = xon.get("checked_email", "")
+
+    row["note_qualite"] = ""   # vide par défaut — annotation manuelle uniquement
 
     return {k: row[k] for k in OUTPUT_FIELDS}
 
