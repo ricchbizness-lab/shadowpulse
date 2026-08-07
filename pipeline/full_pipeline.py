@@ -46,7 +46,7 @@ OUTPUT_FIELDS = [
     "http_reachable", "http_status", "missing_headers_count",
     "typosquatting_count",
     "hunter_emails_count",
-    "hibp_breach_count", "hibp_breaches",
+    "xon_breach_count", "xon_breaches", "xon_checked_email",
     "scanned_at",
 ]
 
@@ -74,9 +74,19 @@ def flatten_scan(cab: Cabinet, scan: dict) -> dict:
     hunter = scan.get("hunter", {})
     row["hunter_emails_count"] = hunter.get("total_emails", "") if "error" not in hunter else "N/A"
 
-    hibp = scan.get("hibp", {})
-    row["hibp_breach_count"] = hibp.get("breach_count", "") if "error" not in hibp else "N/A"
-    row["hibp_breaches"] = "|".join(hibp.get("breaches", [])) if "error" not in hibp else ""
+    xon = scan.get("xon", {})
+    if xon.get("error") == "quota_horaire":
+        row["xon_breach_count"] = "quota_atteint"
+        row["xon_breaches"] = ""
+        row["xon_checked_email"] = ""
+    elif "error" in xon:
+        row["xon_breach_count"] = "N/A"
+        row["xon_breaches"] = ""
+        row["xon_checked_email"] = xon.get("checked_email", "")
+    else:
+        row["xon_breach_count"] = xon.get("breach_count", 0)
+        row["xon_breaches"] = "|".join(xon.get("breaches", []))
+        row["xon_checked_email"] = xon.get("checked_email", "")
 
     return {k: row[k] for k in OUTPUT_FIELDS}
 

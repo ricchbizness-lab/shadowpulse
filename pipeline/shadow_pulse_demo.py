@@ -5,16 +5,18 @@ shadow_pulse_demo.py — Scan d'exposition d'un domaine cible.
 Modules :
   - Typosquatting : dnstwist
   - Emails exposés : Hunter.io API
-  - Fuites de credentials : Have I Been Pwned API
+  - Fuites de credentials : XposedOrNot API (gratuit, sans clé)
   - Surface DNS/SSL/HTTP : DNS-over-HTTPS Cloudflare + requests
 
 Usage :
   python shadow_pulse_demo.py --domain cabinet-exemple.fr
   python shadow_pulse_demo.py --domain cabinet-exemple.fr --json
 
-Variables d'environnement requises (fichier .env) :
-  HUNTER_API_KEY   — clé Hunter.io
-  HIBP_API_KEY     — clé Have I Been Pwned
+Variables d'environnement (fichier .env) :
+  HUNTER_API_KEY   — clé Hunter.io (optionnelle)
+
+XposedOrNot : aucune clé requise. Quota : 25 req/heure, 100 req/jour.
+Throttle interne : 2 s minimum entre chaque appel.
 """
 
 import argparse
@@ -31,11 +33,14 @@ from dotenv import load_dotenv
 load_dotenv()
 
 HUNTER_API_KEY = os.environ.get("HUNTER_API_KEY", "")
-HIBP_API_KEY = os.environ.get("HIBP_API_KEY", "")
 
 DOH_URL = "https://cloudflare-dns.com/dns-query"
 HUNTER_URL = "https://api.hunter.io/v2/domain-search"
-HIBP_DOMAIN_URL = "https://haveibeenpwned.com/api/v3/breacheddomain/{domain}"
+XON_EMAIL_URL = "https://api.xposedornot.com/v1/check-email/{email}"
+
+# Throttle XposedOrNot : 2 s entre appels, quota 25/heure 100/jour.
+XON_THROTTLE_SECS = 2.0
+_xon_quota_reached = False  # flag module-level pour court-circuiter le batch proprement
 
 RECORD_TYPES = ["A", "MX", "TXT", "NS", "CNAME"]
 
@@ -177,29 +182,65 @@ def scan_hunter(domain: str) -> dict:
         return {"error": str(e)}
 
 
-# ─── Have I Been Pwned ───────────────────────────────────────────────────────
+# ─── XposedOrNot ─────────────────────────────────────────────────────────────
 
-def scan_hibp(domain: str) -> dict:
-    if not HIBP_API_KEY:
-        return {"error": "HIBP_API_KEY non configurée"}
+def xon_check_email(email: str) -> dict:
+    """
+    Vérifie si un email apparaît dans des fuites publiques via XposedOrNot.
+    Quota : 25 req/heure, 100 req/jour — aucune clé requise.
+    Throttle appelant : respecter XON_THROTTLE_SECS entre appels successifs.
+
+    Retourne :
+      {"breaches": [...], "breach_count": N}   si des fuites trouvées
+      {"breaches": [], "breach_count": 0}       si rien trouvé
+      {"error": "quota_horaire"}                si HTTP 429
+      {"error": "<message>"}                    si autre erreur
+    """
+    global _xon_quota_reached
+    if _xon_quota_reached:
+        return {"error": "quota_horaire"}
     try:
         resp = requests.get(
-            HIBP_DOMAIN_URL.format(domain=domain),
-            headers={
-                "hibp-api-key": HIBP_API_KEY,
-                "User-Agent": "ShadowPulse-SecurityScanner/1.0",
-            },
+            XON_EMAIL_URL.format(email=email),
+            headers={"User-Agent": "ShadowPulse-SecurityScanner/1.0"},
             timeout=10,
         )
-        if resp.status_code == 404:
-            return {"breaches": [], "breach_count": 0}
+        if resp.status_code == 429:
+            _xon_quota_reached = True
+            print("\n[!] Plafond horaire XposedOrNot atteint — relance dans 1h. "
+                  "Scans suivants ignorés pour ce module.", file=sys.stderr)
+            return {"error": "quota_horaire"}
         resp.raise_for_status()
-        breaches = resp.json()
-        return {"breach_count": len(breaches), "breaches": list(breaches.keys())}
+        data = resp.json()
+        if "Error" in data:
+            return {"breaches": [], "breach_count": 0}
+        # breaches est [[nom1, nom2, ...]] — le sous-tableau est toujours à l'index 0
+        breach_names = data.get("breaches", [[]])[0] if data.get("breaches") else []
+        return {"breaches": breach_names, "breach_count": len(breach_names)}
     except requests.HTTPError as e:
-        return {"error": f"HIBP API {e.response.status_code}: {e.response.text[:200]}"}
+        return {"error": f"XON API {e.response.status_code}: {e.response.text[:200]}"}
     except Exception as e:
         return {"error": str(e)}
+
+
+def scan_xon(domain: str, hunter_result: dict) -> dict:
+    """
+    Checke UN SEUL email par domaine (le premier de la liste Hunter, s'il existe)
+    pour préserver le quota de 25 req/heure sur un run multi-cabinets.
+    Applique le throttle XON_THROTTLE_SECS avant l'appel.
+    """
+    if _xon_quota_reached:
+        return {"error": "quota_horaire", "skipped": True}
+
+    emails = hunter_result.get("emails", [])
+    if not emails:
+        return {"breaches": [], "breach_count": 0, "checked_email": None, "note": "aucun email Hunter disponible"}
+
+    target = emails[0]["email"]
+    time.sleep(XON_THROTTLE_SECS)
+    result = xon_check_email(target)
+    result["checked_email"] = target
+    return result
 
 
 # ─── Score d'exposition ───────────────────────────────────────────────────────
@@ -222,9 +263,9 @@ def compute_exposure_score(results: dict) -> int:
     http = results.get("http", {})
     score += len(http.get("missing_headers", [])) * 4
 
-    # Fuites HIBP
-    hibp = results.get("hibp", {})
-    breach_count = hibp.get("breach_count", 0)
+    # Fuites XposedOrNot
+    xon = results.get("xon", {})
+    breach_count = xon.get("breach_count", 0)
     if breach_count > 0:
         score += min(20, breach_count * 5)
 
@@ -266,9 +307,8 @@ def scan_domain(domain: str) -> dict:
         results["hunter"] = scan_hunter(domain)
         time.sleep(0.5)
 
-    if HIBP_API_KEY:
-        print("    Have I Been Pwned …")
-        results["hibp"] = scan_hibp(domain)
+    print("    XposedOrNot …")
+    results["xon"] = scan_xon(domain, results.get("hunter", {}))
 
     results["exposure_score"] = compute_exposure_score(results)
     return results
@@ -306,10 +346,13 @@ def print_report(r: dict) -> None:
     if "error" not in hunter:
         print(f"\n  Hunter.io : {hunter.get('total_emails', 0)} email(s) indexé(s)")
 
-    hibp = r.get("hibp", {})
-    if "error" not in hibp:
-        bc = hibp.get("breach_count", 0)
-        print(f"\n  HIBP : {bc} fuite(s) — {hibp.get('breaches', [])}")
+    xon = r.get("xon", {})
+    if xon.get("error") == "quota_horaire":
+        print(f"\n  XposedOrNot : quota horaire atteint — module ignoré")
+    elif "error" not in xon:
+        bc = xon.get("breach_count", 0)
+        email_checked = xon.get("checked_email") or "—"
+        print(f"\n  XposedOrNot : {bc} fuite(s) pour {email_checked} — {xon.get('breaches', [])[:5]}")
 
     print(f"\n{'='*60}\n")
 
