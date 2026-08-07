@@ -83,7 +83,8 @@ def flatten_scan(cab: Cabinet, scan: dict) -> dict:
 
 def run(dept: str, max_cabinets: int = 100, dry_run: bool = False,
         out_file: str = "full_results.csv", scan_delay: float = 2.0,
-        hunter_domain_fallback: bool = False) -> None:
+        hunter_domain_fallback: bool = False,
+        inclure_douteux: bool = False) -> None:
 
     print(f"\n{'='*65}")
     print(f"  ShadowPulse Full Pipeline — dept {dept}")
@@ -115,13 +116,18 @@ def run(dept: str, max_cabinets: int = 100, dry_run: bool = False,
         return
 
     # ── Étape 2 : Scan d'exposition ────────────────────────────────────────────
-    to_scan = [c for c in cabinets if c.domaine_confiance != "a_verifier"]
-    douteux_warn = [c for c in to_scan if c.domaine_confiance == "hunter_douteux"]
-    print(f"\n[ ÉTAPE 2 ] Scan d'exposition — {len(to_scan)} domaine(s) avec confiance ≠ a_verifier")
-    if douteux_warn:
-        print(f"            ⚠ {len(douteux_warn)} domaine(s) 'hunter_douteux' inclus — revue manuelle recommandée avant outreach :")
-        for c in douteux_warn:
-            print(f"              {c.nom[:40]} → {c.domaine_guess}")
+    CONFIANCES_SCAN = {"verifie", "verifie_hunter"}
+    if inclure_douteux:
+        CONFIANCES_SCAN.add("hunter_douteux")
+
+    to_scan = [c for c in cabinets if c.domaine_confiance in CONFIANCES_SCAN]
+    douteux_skipped = [c for c in cabinets if c.domaine_confiance == "hunter_douteux" and not inclure_douteux]
+
+    print(f"\n[ ÉTAPE 2 ] Scan d'exposition — {len(to_scan)} domaine(s) éligible(s)")
+    if douteux_skipped:
+        print(f"            ⏭ {len(douteux_skipped)} domaine(s) 'hunter_douteux' exclus du scan automatique :")
+        for c in douteux_skipped:
+            print(f"              {c.nom[:40]} → {c.domaine_guess}  (relancer avec --inclure-douteux après revue)")
     print()
 
     if not to_scan:
@@ -170,6 +176,8 @@ def main():
     parser.add_argument("--delay", type=float, default=2.0, help="Délai (s) entre scans (défaut: 2.0)")
     parser.add_argument("--hunter-domain-fallback", action="store_true",
                         help="Fallback Hunter.io pour les cabinets sans domaine heuristique (⚠ 1 crédit/cabinet)")
+    parser.add_argument("--inclure-douteux", action="store_true",
+                        help="Inclure les domaines 'hunter_douteux' dans le scan (défaut: exclus — revue manuelle requise d'abord)")
     args = parser.parse_args()
 
     run(
@@ -178,6 +186,7 @@ def main():
         dry_run=args.dry_run,
         out_file=args.out,
         hunter_domain_fallback=args.hunter_domain_fallback,
+        inclure_douteux=args.inclure_douteux,
         scan_delay=args.delay,
     )
 
