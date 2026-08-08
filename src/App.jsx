@@ -277,9 +277,9 @@ function SolutionSection() {
   const features = [
     {
       icon: <IconSearch size={24} className="text-[#2563EB]" />,
-      title: 'Audit de surface d\'attaque',
-      desc: 'Cartographie automatique de vos actifs exposés : domaines, IPs, certificats, ports ouverts, dark web. Rapport exécutif en 48h.',
-      badge: 'Audit initial',
+      title: 'Cartographie initiale de votre surface',
+      desc: 'Radiographie complète de vos actifs exposés : domaines, certificats, ports, dark web. Point de départ du monitoring continu — on sait ce qu\'on surveille avant de le surveiller.',
+      badge: 'Onboarding',
     },
     {
       icon: <IconEye size={24} className="text-[#2563EB]" />,
@@ -328,8 +328,8 @@ function SolutionSection() {
             </span>
           </h2>
           <p className="text-[#94A3B8] max-w-2xl mx-auto text-lg">
-            ShadowPulse centralise la surveillance, la détection et la réponse dans une interface
-            claire — sans expertise technique requise de votre côté.
+            ShadowPulse surveille en continu, détecte les nouvelles expositions et vous alerte —
+            sans expertise technique requise de votre côté. La remédiation reste chez votre prestataire IT.
           </p>
         </div>
 
@@ -372,7 +372,7 @@ function PricingSection() {
       desc: 'Pour les TPE et cabinets jusqu\'à 20 collaborateurs',
       popular: false,
       features: [
-        { label: 'Audit surface d\'attaque initial', included: true },
+        { label: 'Cartographie initiale + mise en surveillance', included: true },
         { label: 'Monitoring 5 domaines', included: true },
         { label: 'Alertes email (délai 4h)', included: true },
         { label: 'Rapport mensuel PDF', included: true },
@@ -392,7 +392,7 @@ function PricingSection() {
       desc: 'Pour les PME et cabinets jusqu\'à 100 collaborateurs',
       popular: true,
       features: [
-        { label: 'Audit surface d\'attaque initial', included: true },
+        { label: 'Cartographie initiale + mise en surveillance', included: true },
         { label: 'Monitoring 20 domaines', included: true },
         { label: 'Alertes email + SMS (délai 30 min)', included: true },
         { label: 'Rapports hebdomadaires & mensuels', included: true },
@@ -412,7 +412,7 @@ function PricingSection() {
       desc: 'Pour les groupes, réseaux de cabinets et structures multi-entités',
       popular: false,
       features: [
-        { label: 'Audit surface d\'attaque initial', included: true },
+        { label: 'Cartographie initiale + mise en surveillance', included: true },
         { label: 'Monitoring domaines illimité', included: true },
         { label: 'Alertes multicanal temps réel', included: true },
         { label: 'Rapports sur mesure', included: true },
@@ -594,8 +594,9 @@ function ContactSection() {
               </span>
             </h2>
             <p className="text-[#94A3B8] text-lg mb-8 leading-relaxed">
-              En 30 minutes, nous analysons votre surface d'attaque et identifions vos
-              principales expositions — sans engagement, sans frais.
+              En 30 minutes, on scanne votre domaine en direct et on vous montre ce que
+              ShadowPulse surveille pour vous en continu — sans engagement, sans frais,
+              zéro accès à votre infrastructure.
             </p>
 
             <div className="space-y-4 mb-10">
