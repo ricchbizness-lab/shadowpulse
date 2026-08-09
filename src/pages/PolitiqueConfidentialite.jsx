@@ -3,7 +3,7 @@ import LegalLayout from '../components/LegalLayout.jsx'
 
 export default function PolitiqueConfidentialite() {
   return (
-    <LegalLayout title="Politique de confidentialité">
+    <LegalLayout title="Politique de confidentialité" updated="9 août 2026">
       <p className="legal-meta">
         ShadowPulse SAS accorde une attention particulière à la protection des données
         personnelles de ses utilisateurs et prospects, conformément au Règlement Général

@@ -3,24 +3,22 @@ import LegalLayout from '../components/LegalLayout.jsx'
 
 export default function MentionsLegales() {
   return (
-    <LegalLayout title="Mentions légales">
+    <LegalLayout title="Mentions légales" updated="9 août 2026">
       <h2>Éditeur du site</h2>
       <p>
         Le site <strong>shadowpulse.fr</strong> (et son alias GitHub Pages
         ricchbizness-lab.github.io/shadowpulse) est édité par :
       </p>
       <ul>
-        <li><strong>Raison sociale :</strong> ShadowPulse SAS</li>
+        <li><strong>Raison sociale :</strong> PL &amp; PR Partners (ShadowPulse)</li>
         <li><strong>Forme juridique :</strong> Société par actions simplifiée (SAS)</li>
         <li><strong>Siège social :</strong> 66 Avenue des Champs-Élysées, 75008 Paris, France</li>
-        <li><strong>SIRET :</strong> <span className="legal-placeholder">[À COMPLÉTER]</span></li>
+        <li><strong>SIRET :</strong> 949 324 719 00010</li>
         <li><strong>Contact :</strong> <a href="mailto:contact@shadowpulse.fr">contact@shadowpulse.fr</a></li>
       </ul>
 
       <h2>Directeur de la publication</h2>
-      <p>
-        <span className="legal-placeholder">[À COMPLÉTER]</span>
-      </p>
+      <p>Patrick Lolot-Doressamy, Président de SAS</p>
 
       <h2>Hébergement</h2>
       <p>Le site est hébergé par :</p>

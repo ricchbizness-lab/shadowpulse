@@ -3,7 +3,7 @@ import LegalLayout from '../components/LegalLayout.jsx'
 
 export default function Cgv() {
   return (
-    <LegalLayout title="Conditions Générales de Vente">
+    <LegalLayout title="Conditions Générales de Vente" updated="9 août 2026">
       <p className="legal-meta">
         Les présentes Conditions Générales de Vente (CGV) régissent les relations
         contractuelles entre ShadowPulse SAS et ses clients professionnels souscrivant
@@ -69,9 +69,9 @@ export default function Cgv() {
 
       <h2>Article 7 — Éditeur</h2>
       <ul>
-        <li><strong>ShadowPulse SAS</strong> — 66 Avenue des Champs-Élysées, 75008 Paris, France</li>
-        <li><strong>SIRET :</strong> <span className="legal-placeholder">[À COMPLÉTER]</span></li>
-        <li><strong>Directeur de publication :</strong> <span className="legal-placeholder">[À COMPLÉTER]</span></li>
+        <li><strong>PL &amp; PR Partners (ShadowPulse)</strong> — 66 Avenue des Champs-Élysées, 75008 Paris, France</li>
+        <li><strong>SIRET :</strong> 949 324 719 00010</li>
+        <li><strong>Directeur de publication :</strong> Patrick Lolot-Doressamy, Président de SAS</li>
         <li><strong>Contact :</strong> <a href="mailto:contact@shadowpulse.fr">contact@shadowpulse.fr</a></li>
       </ul>
     </LegalLayout>
