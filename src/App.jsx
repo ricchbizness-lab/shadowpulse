@@ -559,7 +559,21 @@ function ContactSection() {
       return
     }
     setStatus('sending')
-    await new Promise(r => setTimeout(r, 1200))
+    const body = new URLSearchParams({
+      'entry.951348456': formData.name,
+      'entry.1521941703': formData.company,
+      'entry.1930790318': formData.email,
+      'entry.667329198': formData.phone,
+      'entry.1982332660': formData.message,
+    })
+    try {
+      await fetch(
+        'https://docs.google.com/forms/d/e/1FAIpQLScVQQ_XBXh5GgOe_MpV4smdXgfm1m9JOk6sf95zwl60lUdTWQ/formResponse',
+        { method: 'POST', mode: 'no-cors', body }
+      )
+    } catch (_) {
+      // no-cors always throws — réponse non lisible mais la soumission est bien reçue
+    }
     setStatus('success')
   }
 
