@@ -236,6 +236,18 @@ def phase_scan(start: int, end: int, label: str):
             print(f"        Score : {scan.get('exposure_score','?')}/100")
         except Exception as e:
             print(f"        [!] Erreur : {e}")
+
+        # Checkpoint intermédiaire : sauvegarde après chaque cabinet
+        # et export CSV toutes les CHECKPOINT_EVERY cabinets
+        checkpoint_every = getattr(phase_scan, "_checkpoint_every", 0)
+        if checkpoint_every and i % checkpoint_every == 0:
+            partial = done_results + new_rows
+            for r in partial:
+                r.setdefault("note_qualite", "")
+            _save_results(partial)
+            _export_csv(partial)
+            print(f"  ✓ Checkpoint {i}/{len(batch)} — CSV mis à jour")
+
         if i < len(batch):
             time.sleep(SCAN_DELAY)
 
@@ -280,4 +292,5 @@ if __name__ == "__main__":
     elif args.phase == "scan10":
         phase_scan(0, 10, "Scan pilote — 10 premiers")
     elif args.phase == "scan50":
+        phase_scan._checkpoint_every = 20   # CSV intermédiaire après 20 cabinets
         phase_scan(10, 50, "Scan complet — 40 restants")
