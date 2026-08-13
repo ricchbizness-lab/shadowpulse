@@ -44,7 +44,7 @@ OUTPUT_FIELDS = [
     "exposure_score",
     "ssl_ok", "ssl_days_left", "ssl_error",
     "http_reachable", "http_status", "missing_headers_count",
-    "typosquatting_count",
+    "typosquatting_count", "typosquatting_mx_count",
     "hunter_emails_count",
     "xon_breach_count", "xon_breaches", "xon_checked_email",
     "scanned_at",
@@ -71,6 +71,10 @@ def flatten_scan(cab: Cabinet, scan: dict) -> dict:
 
     typo = [t for t in scan.get("typosquatting", []) if isinstance(t, dict) and "error" not in t]
     row["typosquatting_count"] = len(typo)
+    row["typosquatting_mx_count"] = sum(
+        1 for t in typo
+        if t.get("has_mx") or t.get("mx_active") or bool(t.get("mx_records"))
+    )
 
     hunter = scan.get("hunter", {})
     row["hunter_emails_count"] = hunter.get("total_emails", "") if "error" not in hunter else "N/A"

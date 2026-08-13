@@ -3,7 +3,7 @@
 idf_run.py — Pipeline IDF multi-département, exécution en deux phases.
 
 Phase 1 (sourcing) : fetch API + échantillonnage aléatoire + vérification HTTP
-  → stocke le pool de cabinets vérifiés dans /tmp/idf_pool.json
+  → stocke le pool de cabinets vérifiés dans pipeline/state/idf_pool.json
 
 Phase 2a (scan10) : scan CTI des 10 premiers cabinets du pool, affiche résultats
 Phase 2b (scan50) : scan CTI des 40 restants (après confirmation manuelle)
@@ -41,8 +41,14 @@ from shadow_pulse_demo import scan_domain
 from full_pipeline import flatten_scan, OUTPUT_FIELDS
 
 DEPTS = ["75", "77", "78", "91", "92", "93", "94", "95"]
-POOL_FILE = "/tmp/idf_pool.json"
-RESULTS_FILE = "/tmp/idf_results.json"
+
+# Chemins persistants (survivent aux redémarrages de session cloud)
+_STATE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "state")
+os.makedirs(_STATE_DIR, exist_ok=True)
+POOL_FILE    = os.path.join(_STATE_DIR, "idf_pool.json")
+RESULTS_FILE = os.path.join(_STATE_DIR, "idf_results.json")
+CSV_FILE     = os.path.join(_STATE_DIR, "idf_results.csv")
+
 RANDOM_SEED = 42
 SCAN_TARGET = 50           # cabinets à scanner total
 VERIFY_OVERSAMPLE = 5      # on vérifie 5× la cible pour avoir assez de verifie (~20% hit rate)
@@ -189,6 +195,15 @@ def _save_results(rows: list[dict]):
     with open(RESULTS_FILE, "w") as f:
         json.dump(rows, f, ensure_ascii=False, indent=2)
 
+def _export_csv(rows: list[dict]):
+    """Exporte toutes les colonnes OUTPUT_FIELDS triées par score décroissant."""
+    sorted_rows = sorted(rows, key=lambda r: r.get("exposure_score", 0), reverse=True)
+    with open(CSV_FILE, "w", newline="", encoding="utf-8-sig") as f:
+        writer = csv.DictWriter(f, fieldnames=OUTPUT_FIELDS, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(sorted_rows)
+    print(f"\n  CSV exporté → {CSV_FILE}  ({len(sorted_rows)} lignes)")
+
 
 def phase_scan(start: int, end: int, label: str):
     pool = _load_pool()
@@ -230,6 +245,7 @@ def phase_scan(start: int, end: int, label: str):
 
     all_results = done_results + new_rows
     _save_results(all_results)
+    _export_csv(all_results)
 
     # Affichage tableau récap
     sorted_rows = sorted(all_results, key=lambda r: r.get("exposure_score", 0), reverse=True)
@@ -253,6 +269,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("phase", choices=["sourcing", "scan10", "scan50"])
     args = parser.parse_args()
+
+    print(f"\n  [CONFIG] Persistance → {_STATE_DIR}")
+    print(f"           Pool      → {POOL_FILE}")
+    print(f"           Résultats → {RESULTS_FILE}")
+    print(f"           CSV       → {CSV_FILE}\n")
 
     if args.phase == "sourcing":
         phase_sourcing()
