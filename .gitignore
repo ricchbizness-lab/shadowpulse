@@ -9,3 +9,6 @@ __pycache__/
 *.pyc
 *.pyo
 *.csv
+# Données personnelles — ne jamais commiter (SIREN, noms, emails)
+pipeline/state/*.json
+pipeline/state/*.csv
