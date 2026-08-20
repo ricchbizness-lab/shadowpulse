@@ -7,7 +7,7 @@ const root = fileURLToPath(new URL('.', import.meta.url))
 
 export default defineConfig({
   plugins: [react()],
-  base: '/shadowpulse/',
+  base: '/',
   build: {
     rollupOptions: {
       input: {
