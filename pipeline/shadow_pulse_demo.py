@@ -182,6 +182,165 @@ def scan_hunter(domain: str) -> dict:
         return {"error": str(e)}
 
 
+# ─── Email guess + SMTP verify ───────────────────────────────────────────────
+
+import random
+import smtplib
+import string
+import unicodedata
+
+import dns.resolver
+
+SMTP_TIMEOUT   = 8    # secondes par connexion
+SMTP_DELAY     = 1.5  # secondes entre deux checks (anti-throttle)
+SMTP_HELO      = "shadowpulse.fr"
+SMTP_FROM      = "verify@shadowpulse.fr"
+
+
+def _normalize(s: str) -> str:
+    """Minuscules + suppression accents + garde lettres/chiffres/tirets."""
+    s = unicodedata.normalize("NFD", s)
+    s = "".join(c for c in s if unicodedata.category(c) != "Mn")
+    return s.lower().strip()
+
+
+def _parse_dirigeant(dirigeant: str) -> tuple[str, str]:
+    """
+    Extrait (prénom, nom) depuis le champ dirigeant API.
+    Format habituel : 'PRENOM NOM' ou 'PRENOM NOM (NOM_NAISSANCE)'.
+    """
+    # Retire la partie entre parenthèses (nom de naissance)
+    base = dirigeant.split("(")[0].strip()
+    parts = base.split()
+    if len(parts) == 0:
+        return "", ""
+    if len(parts) == 1:
+        return parts[0], ""
+    # Convention API : PRENOMS d'abord, NOM en dernier
+    # Heuristique : si tout en majuscules (cas API), 1er token = prénom, reste = nom
+    prenom = _normalize(parts[0])
+    nom    = _normalize(parts[-1])
+    return prenom, nom
+
+
+def generate_email_patterns(dirigeant: str, domaine: str) -> list[str]:
+    """
+    Génère les patterns d'email les plus probables pour un dirigeant.
+    Ordre décroissant de fréquence en France B2B.
+    """
+    prenom, nom = _parse_dirigeant(dirigeant)
+    if not prenom or not nom:
+        return []
+    p, n = prenom, nom
+    p1 = p[0] if p else ""
+    n1 = n[0] if n else ""
+    candidates = [
+        f"{p}.{n}@{domaine}",       # prenom.nom  (le plus commun)
+        f"{p1}.{n}@{domaine}",      # p.nom
+        f"{p}@{domaine}",           # prenom
+        f"{p}{n}@{domaine}",        # prenomnom
+        f"{p1}{n}@{domaine}",       # pnom
+        f"{n}.{p}@{domaine}",       # nom.prenom
+        f"{n}@{domaine}",           # nom seul
+        f"contact@{domaine}",       # fallback générique
+    ]
+    # Déduplique en préservant l'ordre
+    seen, unique = set(), []
+    for c in candidates:
+        if c not in seen:
+            seen.add(c)
+            unique.append(c)
+    return unique
+
+
+def _get_mx(domaine: str) -> str | None:
+    """Retourne le MX de plus haute priorité ou None."""
+    try:
+        records = dns.resolver.resolve(domaine, "MX", lifetime=5)
+        best = sorted(records, key=lambda r: r.preference)[0]
+        return str(best.exchange).rstrip(".")
+    except Exception:
+        return None
+
+
+def _smtp_probe(mx: str, email: str) -> str:
+    """
+    Sonde SMTP RCPT TO sans envoyer.
+    Retourne : 'accepted' | 'rejected' | 'inconclusive'
+    """
+    try:
+        with smtplib.SMTP(timeout=SMTP_TIMEOUT) as s:
+            s.connect(mx, 25)
+            s.ehlo(SMTP_HELO)
+            code_from, _ = s.docmd("MAIL FROM:", f"<{SMTP_FROM}>")
+            if code_from not in (250, 251):
+                return "inconclusive"
+            code_rcpt, _ = s.docmd("RCPT TO:", f"<{email}>")
+            s.quit()
+            if code_rcpt in (250, 251):
+                return "accepted"
+            if code_rcpt in (550, 551, 552, 553, 554, 450, 451, 452):
+                return "rejected"
+            return "inconclusive"
+    except Exception:
+        return "inconclusive"
+
+
+def _is_catchall(mx: str, domaine: str) -> bool:
+    """
+    Détecte un domaine catch-all en testant une adresse aléatoire.
+    Si le serveur accepte un email manifestement invalide → catch-all.
+    """
+    rand_local = "zzz_" + "".join(random.choices(string.ascii_lowercase, k=10)) + "_test"
+    probe_addr = f"{rand_local}@{domaine}"
+    result = _smtp_probe(mx, probe_addr)
+    return result == "accepted"
+
+
+def guess_and_verify_email(dirigeant: str, domaine: str) -> dict:
+    """
+    Génère les patterns d'email probables pour un dirigeant et vérifie via SMTP.
+
+    Retourne un dict avec :
+      email_guess     : adresse retenue (ou None)
+      email_confiance : 'email_haute' | 'email_catchall' | 'email_invalid' | 'email_inconclusive'
+      email_pattern   : pattern utilisé (ex: 'prenom.nom')
+    """
+    patterns = generate_email_patterns(dirigeant, domaine)
+    if not patterns:
+        return {"email_guess": None, "email_confiance": "email_inconclusive", "email_pattern": None}
+
+    mx = _get_mx(domaine)
+    if not mx:
+        return {"email_guess": None, "email_confiance": "email_inconclusive", "email_pattern": None}
+
+    # Détection catch-all (1 probe supplémentaire)
+    time.sleep(SMTP_DELAY)
+    catchall = _is_catchall(mx, domaine)
+
+    # On teste les patterns dans l'ordre jusqu'au premier 'accepted'
+    for candidate in patterns:
+        time.sleep(SMTP_DELAY)
+        result = _smtp_probe(mx, candidate)
+
+        if result == "accepted":
+            # Extraire le pattern depuis l'adresse
+            local = candidate.split("@")[0]
+            confiance = "email_catchall" if catchall else "email_haute"
+            return {
+                "email_guess": candidate,
+                "email_confiance": confiance,
+                "email_pattern": local,
+            }
+        if result == "rejected":
+            continue
+        # inconclusive : on arrête pour ce domaine, pas fiable
+        return {"email_guess": None, "email_confiance": "email_inconclusive", "email_pattern": None}
+
+    # Aucun pattern accepté
+    return {"email_guess": None, "email_confiance": "email_invalid", "email_pattern": None}
+
+
 # ─── XposedOrNot ─────────────────────────────────────────────────────────────
 
 def xon_check_email(email: str) -> dict:

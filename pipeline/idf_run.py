@@ -37,7 +37,7 @@ from prospect_pipeline import (
     TRANCHES_API_PARAM, TRANCHES_CIBLES,
     Cabinet,
 )
-from shadow_pulse_demo import scan_domain
+from shadow_pulse_demo import scan_domain, guess_and_verify_email
 from full_pipeline import flatten_scan, OUTPUT_FIELDS
 
 DEPTS = ["75", "77", "78", "91", "92", "93", "94", "95"]
@@ -275,11 +275,80 @@ def phase_scan(start: int, end: int, label: str):
     print()
 
 
+# ─── Phase 3 : enrichissement email (guess + SMTP verify) ────────────────────
+
+def phase_enrich(limit: int = 25):
+    """
+    Enrichit les résultats existants avec des adresses email devinées
+    et vérifiées par SMTP RCPT TO (sans envoi réel).
+
+    Niveaux de confiance (cohérence avec domaine_confiance) :
+      email_haute       — accepted sur domaine non catch-all → exploitable direct
+      email_catchall    — accepted mais domaine catch-all    → à_vérifier
+      email_invalid     — rejeté par tous les patterns       → ne pas envoyer
+      email_inconclusive— MX injoignable ou SMTP non coopératif → vérif manuelle
+    """
+    rows = _load_results()
+    if not rows:
+        print("[!] Aucun résultat à enrichir — lance d'abord scan10 + scan50.")
+        return
+
+    # Cible : cabinets avec dirigeant connu et sans email déjà enrichi
+    to_enrich = [
+        r for r in rows
+        if r.get("dirigeant", "").strip()
+        and not r.get("email_guess")
+    ][:limit]
+
+    print(f"\n{'='*65}")
+    print(f"  IDF Run — Enrichissement email ({limit} premiers éligibles)")
+    print(f"  {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}")
+    print(f"{'='*65}\n")
+    print(f"  Cabinets éligibles (dirigeant connu, pas encore enrichi) : {len(to_enrich)}")
+    print(f"  Méthode : SMTP RCPT TO — aucun email envoyé, délai {1.5}s/probe\n")
+
+    stats = {"email_haute": 0, "email_catchall": 0, "email_invalid": 0, "email_inconclusive": 0}
+    row_index = {r["siren"]: r for r in rows}
+
+    for i, r in enumerate(to_enrich, 1):
+        dirigeant = r["dirigeant"]
+        domaine   = r["domaine_guess"]
+        print(f"  [{i}/{len(to_enrich)}] {r['nom'][:35]} → {domaine} ({dirigeant[:30]})")
+
+        result = guess_and_verify_email(dirigeant, domaine)
+
+        r["email_guess"]     = result.get("email_guess") or ""
+        r["email_confiance"] = result.get("email_confiance", "email_inconclusive")
+        r["email_pattern"]   = result.get("email_pattern") or ""
+        row_index[r["siren"]].update(r)
+
+        conf = r["email_confiance"]
+        stats[conf] = stats.get(conf, 0) + 1
+        label = {
+            "email_haute":        "✓ haute",
+            "email_catchall":     "~ catchall (à_vérifier)",
+            "email_invalid":      "✗ invalid",
+            "email_inconclusive": "? inconclusive",
+        }.get(conf, conf)
+        addr = r["email_guess"] or "—"
+        print(f"        {label} → {addr}")
+
+    updated_rows = list(row_index.values())
+    _save_results(updated_rows)
+    _export_csv(updated_rows)
+
+    print(f"\n  ── Bilan enrichissement ──")
+    total = sum(stats.values())
+    for k, v in stats.items():
+        print(f"    {k:<22}: {v:>3}  ({100*v//total if total else 0}%)")
+    print(f"\n  CSV mis à jour → {CSV_FILE}\n")
+
+
 # ─── CLI ─────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("phase", choices=["sourcing", "scan10", "scan50"])
+    parser.add_argument("phase", choices=["sourcing", "scan10", "scan50", "enrich", "enrich25"])
     args = parser.parse_args()
 
     print(f"\n  [CONFIG] Persistance → {_STATE_DIR}")
@@ -294,3 +363,5 @@ if __name__ == "__main__":
     elif args.phase == "scan50":
         phase_scan._checkpoint_every = 20   # CSV intermédiaire après 20 cabinets
         phase_scan(10, 50, "Scan complet — 40 restants")
+    elif args.phase in ("enrich", "enrich25"):
+        phase_enrich(limit=25)

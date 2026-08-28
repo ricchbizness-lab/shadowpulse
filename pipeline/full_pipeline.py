@@ -48,6 +48,7 @@ OUTPUT_FIELDS = [
     "hunter_emails_count",
     "xon_breach_count", "xon_breaches", "xon_checked_email",
     "scanned_at",
+    "email_guess", "email_confiance", "email_pattern",
     "note_qualite",   # annotation manuelle optionnelle — ne jamais auto-remplir
 ]
 
