@@ -182,19 +182,12 @@ def scan_hunter(domain: str) -> dict:
         return {"error": str(e)}
 
 
-# ─── Email guess + SMTP verify ───────────────────────────────────────────────
+# ─── Email guess + Reoon API verify ─────────────────────────────────────────
 
-import random
-import smtplib
-import string
 import unicodedata
 
-import dns.resolver
-
-SMTP_TIMEOUT   = 8    # secondes par connexion
-SMTP_DELAY     = 1.5  # secondes entre deux checks (anti-throttle)
-SMTP_HELO      = "shadowpulse.fr"
-SMTP_FROM      = "verify@shadowpulse.fr"
+REOON_API_KEY = os.getenv("REOON_API_KEY", "KhbZJLvRPzUVsrUXCHTPyaEXzplvt5S8")
+REOON_DELAY   = 1.5   # secondes entre appels API (anti-throttle)
 
 
 def _normalize(s: str) -> str:
@@ -253,53 +246,45 @@ def generate_email_patterns(dirigeant: str, domaine: str) -> list[str]:
     return unique
 
 
-def _get_mx(domaine: str) -> str | None:
-    """Retourne le MX de plus haute priorité ou None."""
+def _reoon_verify(email: str) -> dict:
+    """Vérifie un email via Reoon API (mode=power). Retourne le JSON brut."""
+    url = (
+        f"https://emailverifier.reoon.com/api/v1/verify"
+        f"?email={email}&key={REOON_API_KEY}&mode=power"
+    )
     try:
-        records = dns.resolver.resolve(domaine, "MX", lifetime=5)
-        best = sorted(records, key=lambda r: r.preference)[0]
-        return str(best.exchange).rstrip(".")
-    except Exception:
-        return None
+        resp = requests.get(url, timeout=15)
+        resp.raise_for_status()
+        return resp.json()
+    except Exception as e:
+        return {"status": "unknown", "error": str(e)}
 
 
-def _smtp_probe(mx: str, email: str) -> str:
+def _reoon_to_confiance(data: dict) -> str:
     """
-    Sonde SMTP RCPT TO sans envoyer.
-    Retourne : 'accepted' | 'rejected' | 'inconclusive'
+    Mappe la réponse Reoon vers les 4 niveaux de confiance internes.
+    Basé sur les réponses réelles de l'API (testées sur contact@efca.fr,
+    contact@fiparco.fr, jean.pierre@bcm.fr).
     """
-    try:
-        with smtplib.SMTP(timeout=SMTP_TIMEOUT) as s:
-            s.connect(mx, 25)
-            s.ehlo(SMTP_HELO)
-            code_from, _ = s.docmd("MAIL FROM:", f"<{SMTP_FROM}>")
-            if code_from not in (250, 251):
-                return "inconclusive"
-            code_rcpt, _ = s.docmd("RCPT TO:", f"<{email}>")
-            s.quit()
-            if code_rcpt in (250, 251):
-                return "accepted"
-            if code_rcpt in (550, 551, 552, 553, 554, 450, 451, 452):
-                return "rejected"
-            return "inconclusive"
-    except Exception:
-        return "inconclusive"
+    status       = data.get("status", "unknown")
+    is_catch_all = data.get("is_catch_all", False)
+    is_safe      = data.get("is_safe_to_send", False)
 
-
-def _is_catchall(mx: str, domaine: str) -> bool:
-    """
-    Détecte un domaine catch-all en testant une adresse aléatoire.
-    Si le serveur accepte un email manifestement invalide → catch-all.
-    """
-    rand_local = "zzz_" + "".join(random.choices(string.ascii_lowercase, k=10)) + "_test"
-    probe_addr = f"{rand_local}@{domaine}"
-    result = _smtp_probe(mx, probe_addr)
-    return result == "accepted"
+    if status == "invalid" or status in ("disposable", "spamtrap"):
+        return "email_invalid"
+    if status == "catch_all" or is_catch_all:
+        return "email_catchall"
+    if status == "valid":
+        return "email_haute"
+    if status == "role_account" and is_safe:
+        return "email_haute"
+    # unknown / tout le reste
+    return "email_inconclusive"
 
 
 def guess_and_verify_email(dirigeant: str, domaine: str) -> dict:
     """
-    Génère les patterns d'email probables pour un dirigeant et vérifie via SMTP.
+    Génère les patterns d'email probables pour un dirigeant et vérifie via Reoon API.
 
     Retourne un dict avec :
       email_guess     : adresse retenue (ou None)
@@ -310,34 +295,23 @@ def guess_and_verify_email(dirigeant: str, domaine: str) -> dict:
     if not patterns:
         return {"email_guess": None, "email_confiance": "email_inconclusive", "email_pattern": None}
 
-    mx = _get_mx(domaine)
-    if not mx:
-        return {"email_guess": None, "email_confiance": "email_inconclusive", "email_pattern": None}
+    for i, candidate in enumerate(patterns):
+        if i > 0:
+            time.sleep(REOON_DELAY)
+        data = _reoon_verify(candidate)
+        confiance = _reoon_to_confiance(data)
 
-    # Détection catch-all (1 probe supplémentaire)
-    time.sleep(SMTP_DELAY)
-    catchall = _is_catchall(mx, domaine)
-
-    # On teste les patterns dans l'ordre jusqu'au premier 'accepted'
-    for candidate in patterns:
-        time.sleep(SMTP_DELAY)
-        result = _smtp_probe(mx, candidate)
-
-        if result == "accepted":
-            # Extraire le pattern depuis l'adresse
+        if confiance == "email_haute":
             local = candidate.split("@")[0]
-            confiance = "email_catchall" if catchall else "email_haute"
-            return {
-                "email_guess": candidate,
-                "email_confiance": confiance,
-                "email_pattern": local,
-            }
-        if result == "rejected":
+            return {"email_guess": candidate, "email_confiance": confiance, "email_pattern": local}
+        if confiance == "email_catchall":
+            local = candidate.split("@")[0]
+            return {"email_guess": candidate, "email_confiance": confiance, "email_pattern": local}
+        if confiance == "email_invalid":
             continue
-        # inconclusive : on arrête pour ce domaine, pas fiable
+        # inconclusive (unknown / API error) — arrêt pour ce domaine
         return {"email_guess": None, "email_confiance": "email_inconclusive", "email_pattern": None}
 
-    # Aucun pattern accepté
     return {"email_guess": None, "email_confiance": "email_invalid", "email_pattern": None}
 
 
