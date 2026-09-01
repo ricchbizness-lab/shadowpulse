@@ -297,7 +297,7 @@ def phase_enrich(limit: int = 25):
     to_enrich = [
         r for r in rows
         if r.get("dirigeant", "").strip()
-        and not r.get("email_guess")
+        and not r.get("email_confiance")   # skip already-processed (any outcome)
     ][:limit]
 
     print(f"\n{'='*65}")
