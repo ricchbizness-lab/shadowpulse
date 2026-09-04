@@ -1,5 +1,13 @@
 name: Deploy to GitHub Pages
 
+# IMPORTANT — DEPLOYMENT BRANCH
+# This workflow MUST trigger on 'claude/git-ux-ui-design-pro-rmvd0w' only.
+# GitHub reads the trigger from the *pushed commit's* workflow file, so if this
+# branch name is changed here (e.g. after a rebase that brings in commits from
+# feature/shadow-pulse-pipeline), pushes to the deploy branch will silently stop
+# firing. Always verify this matches the branch you are pushing to.
+# The GitHub Pages environment is scoped to this branch — other branches will
+# fail at the deploy job even if the build succeeds.
 on:
   push:
     branches: [claude/git-ux-ui-design-pro-rmvd0w]
