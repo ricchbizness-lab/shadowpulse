@@ -628,7 +628,7 @@ function ContactSection() {
             <div className="p-5 rounded-2xl bg-[#1A1F2E] border border-[#1E3A5F]/60">
               <p className="text-sm text-[#94A3B8] mb-3">Préférez planifier directement ?</p>
               <a
-                href="https://calendly.com/shadowpulse"
+                href="https://calendly.com/ricch-bizness/new-meeting"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 text-sm font-semibold text-[#2563EB] hover:text-[#06B6D4] transition-colors duration-200"
