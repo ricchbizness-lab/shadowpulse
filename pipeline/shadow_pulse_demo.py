@@ -74,27 +74,75 @@ def scan_dns(domain: str) -> dict:
 
 # ─── SSL ─────────────────────────────────────────────────────────────────────
 
-def scan_ssl(domain: str) -> dict:
-    """Vérifie que le certificat SSL est valide et récupère son expiration."""
-    import ssl
-    result = {"has_ssl": False, "expires": None, "days_left": None, "error": None}
+def _ssl_via_ctlog(domain: str) -> dict:
+    """
+    Récupère la date d'expiration réelle du certificat via Certificate Transparency (crt.sh).
+    Contourne l'interception TLS du proxy cloud (qui re-signe tous les certs avec un CA interne
+    à validité ~30 jours, rendant ssl.wrap_socket() inutilisable pour mesurer l'expiration réelle).
+    Utilise urllib.request (pas requests) car crt.sh filtre différemment les deux clients.
+    """
+    import urllib.request as _urllib
+    result = {"has_ssl": None, "expires": None, "days_left": None, "error": None, "source": "ctlog"}
+    url = f"https://crt.sh/?q={domain}&output=json"
     try:
-        ctx = ssl.create_default_context()
-        with ctx.wrap_socket(socket.socket(), server_hostname=domain) as s:
-            s.settimeout(6)
-            s.connect((domain, 443))
-            cert = s.getpeercert()
-        not_after = cert.get("notAfter", "")
-        if not_after:
-            exp = datetime.strptime(not_after, "%b %d %H:%M:%S %Y %Z").replace(tzinfo=timezone.utc)
-            days_left = (exp - datetime.now(timezone.utc)).days
-            result.update({"has_ssl": True, "expires": not_after, "days_left": days_left})
-        else:
-            result["has_ssl"] = True
-    except ssl.SSLCertVerificationError as e:
-        result["error"] = f"Cert invalide : {e}"
+        req = _urllib.Request(url, headers={"User-Agent": "ShadowPulse-CTLogChecker/1.0"})
+        with _urllib.urlopen(req, timeout=25) as resp:
+            raw = resp.read()
+        if not raw.strip():
+            result["error"] = "crt.sh: réponse vide"
+            return result
+        certs = json.loads(raw)
+        now = datetime.now(timezone.utc)
+        active = []
+        for c in certs:
+            try:
+                exp = datetime.strptime(c["not_after"], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=timezone.utc)
+                if exp > now:
+                    active.append((exp, c))
+            except Exception:
+                pass
+        if not active:
+            result.update({"has_ssl": False, "error": "aucun cert actif dans CT logs"})
+            return result
+        active.sort(key=lambda x: x[0], reverse=True)
+        exp, cert = active[0]
+        days_left = (exp - now).days
+        result.update({
+            "has_ssl": True,
+            "expires": cert["not_after"],
+            "days_left": days_left,
+        })
     except Exception as e:
         result["error"] = str(e)
+    return result
+
+
+def scan_ssl(domain: str) -> dict:
+    """
+    Vérifie le certificat SSL via Certificate Transparency logs (crt.sh).
+
+    Note : dans les environnements cloud avec proxy TLS interceptant (ex. Anthropic CCR),
+    ssl.wrap_socket() retourne le certificat du proxy (~30 jours fixe) et non le vrai
+    certificat du domaine. On utilise donc crt.sh comme source primaire.
+    """
+    result = _ssl_via_ctlog(domain)
+    # Fallback minimal : si CT log indisponible, on vérifie juste que le site est joignable
+    if result["has_ssl"] is None and result["error"]:
+        import ssl as _ssl
+        fb = {"has_ssl": False, "expires": None, "days_left": None,
+              "error": result["error"] + " [ctlog unavailable — proxy intercepts TLS]",
+              "source": "socket_fallback"}
+        try:
+            ctx = _ssl.create_default_context()
+            with ctx.wrap_socket(socket.socket(), server_hostname=domain) as s:
+                s.settimeout(6)
+                s.connect((domain, 443))
+            # Site joignable mais jours_left non fiable (cert proxy)
+            fb.update({"has_ssl": True, "days_left": None,
+                       "error": "jours_left indisponible — proxy TLS intercepte les certificats"})
+        except Exception:
+            pass
+        return fb
     return result
 
 
