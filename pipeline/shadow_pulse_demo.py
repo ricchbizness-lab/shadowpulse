@@ -74,12 +74,29 @@ def scan_dns(domain: str) -> dict:
 
 # ─── SSL ─────────────────────────────────────────────────────────────────────
 
+def _tcp_443_open(domain: str, timeout: float = 8.0) -> bool:
+    """Vérifie uniquement que TCP 443 est joignable (sans TLS — évite l'interception proxy)."""
+    try:
+        with socket.create_connection((domain, 443), timeout=timeout):
+            return True
+    except OSError:
+        return False
+
+
 def _ssl_via_ctlog(domain: str) -> dict:
     """
     Récupère la date d'expiration réelle du certificat via Certificate Transparency (crt.sh).
     Contourne l'interception TLS du proxy cloud (qui re-signe tous les certs avec un CA interne
     à validité ~30 jours, rendant ssl.wrap_socket() inutilisable pour mesurer l'expiration réelle).
     Utilise urllib.request (pas requests) car crt.sh filtre différemment les deux clients.
+
+    Valeurs de retour pour has_ssl :
+      True            — cert actif trouvé dans CT logs, days_left et expires fiables
+      False           — certs CT logs présents mais tous expirés (absence réelle de cert valide)
+      "unindexed"     — site joignable sur TCP 443 mais aucun cert dans CT logs
+                        (CDN partagé, CA privée, wildcard Cloudflare non indexé…) — SSL présent mais indéterminable
+      "unreachable"   — TCP 443 injoignable, situation SSL indéterminable
+      None            — CT logs indisponibles (erreur réseau/HTTP), voir error
     """
     import urllib.request as _urllib
     result = {"has_ssl": None, "expires": None, "days_left": None, "error": None, "source": "ctlog"}
@@ -93,25 +110,42 @@ def _ssl_via_ctlog(domain: str) -> dict:
             return result
         certs = json.loads(raw)
         now = datetime.now(timezone.utc)
-        active = []
+        active, expired = [], []
         for c in certs:
             try:
                 exp = datetime.strptime(c["not_after"], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=timezone.utc)
-                if exp > now:
-                    active.append((exp, c))
+                (active if exp > now else expired).append((exp, c))
             except Exception:
                 pass
-        if not active:
-            result.update({"has_ssl": False, "error": "aucun cert actif dans CT logs"})
+        if active:
+            active.sort(key=lambda x: x[0], reverse=True)
+            exp, cert = active[0]
+            result.update({
+                "has_ssl": True,
+                "expires": cert["not_after"],
+                "days_left": (exp - now).days,
+            })
             return result
-        active.sort(key=lambda x: x[0], reverse=True)
-        exp, cert = active[0]
-        days_left = (exp - now).days
-        result.update({
-            "has_ssl": True,
-            "expires": cert["not_after"],
-            "days_left": days_left,
-        })
+        if expired:
+            # CT logs présents, tous expirés → absence réelle de cert valide
+            result.update({"has_ssl": False, "error": "tous les certs CT logs sont expirés"})
+            return result
+        # 0 enregistrement total dans CT logs — ne pas conclure à l'absence de SSL
+        # avant de vérifier la joignabilité TCP
+        if _tcp_443_open(domain):
+            result.update({
+                "has_ssl": "unindexed",
+                "error": (
+                    "aucun cert dans CT logs mais TCP 443 joignable — "
+                    "probable cert CDN/wildcard non indexé sous ce nom"
+                ),
+            })
+        else:
+            result.update({
+                "has_ssl": "unreachable",
+                "error": "TCP 443 injoignable et aucun cert dans CT logs — situation SSL indéterminable",
+            })
+        return result
     except Exception as e:
         result["error"] = str(e)
     return result
@@ -121,28 +155,37 @@ def scan_ssl(domain: str) -> dict:
     """
     Vérifie le certificat SSL via Certificate Transparency logs (crt.sh).
 
+    Trois cas distincts à ne pas confondre :
+      (a) Site inaccessible TCP 443 → SSL indéterminé (has_ssl="unreachable")
+      (b) Site joignable mais aucun cert dans CT logs → cert présent mais non indexé
+          (CDN partagé, wildcard, CA privée) → has_ssl="unindexed"
+      (c) Certs CT logs présents mais tous expirés → absence réelle de cert valide
+          → has_ssl=False
+      (ok) Cert actif en CT logs → has_ssl=True, days_left et expires fiables
+
     Note : dans les environnements cloud avec proxy TLS interceptant (ex. Anthropic CCR),
     ssl.wrap_socket() retourne le certificat du proxy (~30 jours fixe) et non le vrai
-    certificat du domaine. On utilise donc crt.sh comme source primaire.
+    certificat du domaine. On utilise donc crt.sh + TCP-only comme sources primaires.
     """
     result = _ssl_via_ctlog(domain)
-    # Fallback minimal : si CT log indisponible, on vérifie juste que le site est joignable
+    # Fallback : si crt.sh lui-même est indisponible (erreur réseau, HTTP 5xx…),
+    # on vérifie juste la joignabilité TCP 443 sans TLS pour ne pas bloquer le scan.
     if result["has_ssl"] is None and result["error"]:
-        import ssl as _ssl
-        fb = {"has_ssl": False, "expires": None, "days_left": None,
-              "error": result["error"] + " [ctlog unavailable — proxy intercepts TLS]",
-              "source": "socket_fallback"}
-        try:
-            ctx = _ssl.create_default_context()
-            with ctx.wrap_socket(socket.socket(), server_hostname=domain) as s:
-                s.settimeout(6)
-                s.connect((domain, 443))
-            # Site joignable mais jours_left non fiable (cert proxy)
-            fb.update({"has_ssl": True, "days_left": None,
-                       "error": "jours_left indisponible — proxy TLS intercepte les certificats"})
-        except Exception:
-            pass
-        return fb
+        if _tcp_443_open(domain):
+            return {
+                "has_ssl": "unindexed",
+                "expires": None,
+                "days_left": None,
+                "error": "crt.sh indisponible — TCP 443 joignable, situation SSL indéterminable",
+                "source": "socket_fallback",
+            }
+        return {
+            "has_ssl": "unreachable",
+            "expires": None,
+            "days_left": None,
+            "error": "crt.sh indisponible et TCP 443 injoignable — situation SSL indéterminable",
+            "source": "socket_fallback",
+        }
     return result
 
 
