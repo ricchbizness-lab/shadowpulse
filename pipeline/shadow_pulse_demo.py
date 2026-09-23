@@ -476,12 +476,22 @@ def compute_exposure_score(results: dict) -> int:
     """
     score = 0
 
-    # SSL absent ou expirant bientôt
+    # SSL — 4 cas distincts issus de scan_ssl() via CT logs
     ssl = results.get("ssl", {})
-    if ssl.get("error") or not ssl.get("has_ssl"):
-        score += 20
-    elif ssl.get("days_left") is not None and ssl["days_left"] < 30:
-        score += 10
+    has_ssl = ssl.get("has_ssl")
+    if has_ssl is True:
+        days = ssl.get("days_left")
+        if days is not None and days < 30:
+            score += 10   # cert actif mais expire bientôt
+    elif has_ssl == "unindexed":
+        score += 10   # TCP 443 ouvert mais cert non indexé — signal ambigu
+    elif has_ssl is False:
+        score += 20   # tous les certs CT logs expirés — absence confirmée
+    elif has_ssl == "unreachable":
+        score += 20   # port 443 fermé — SSL absent ou site hors ligne
+    elif has_ssl is None:
+        # Erreur crt.sh (timeout, etc.) — ne pas scorer comme "SSL absent"
+        pass
 
     # Headers de sécurité manquants (max 24 pts : 4 pts × 6 headers)
     http = results.get("http", {})

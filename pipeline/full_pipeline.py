@@ -61,7 +61,8 @@ def flatten_scan(cab: Cabinet, scan: dict) -> dict:
     row["scanned_at"] = scan.get("scanned_at", "")
 
     ssl = scan.get("ssl", {})
-    row["ssl_ok"] = ssl.get("has_ssl", False)
+    # has_ssl peut être True / False / "unindexed" / "unreachable" / None
+    row["ssl_ok"] = ssl.get("has_ssl")  # None = erreur crt.sh (indéterminé)
     row["ssl_days_left"] = ssl.get("days_left", "")
     row["ssl_error"] = ssl.get("error", "")
 
@@ -95,6 +96,12 @@ def flatten_scan(cab: Cabinet, scan: dict) -> dict:
         row["xon_checked_email"] = xon.get("checked_email", "")
 
     row["note_qualite"] = ""   # vide par défaut — annotation manuelle uniquement
+
+    # Champs remplis par phase_enrich — initialisés vides ici pour que
+    # flatten_scan soit autonome même sans enrichissement préalable.
+    row.setdefault("email_guess", "")
+    row.setdefault("email_confiance", "")
+    row.setdefault("email_pattern", "")
 
     return {k: row[k] for k in OUTPUT_FIELDS}
 
