@@ -96,6 +96,12 @@ def flatten_scan(cab: Cabinet, scan: dict) -> dict:
 
     row["note_qualite"] = ""   # vide par défaut — annotation manuelle uniquement
 
+    # Champs remplis par phase_enrich — initialisés vides ici pour que
+    # flatten_scan soit autonome même sans enrichissement préalable.
+    row.setdefault("email_guess", "")
+    row.setdefault("email_confiance", "")
+    row.setdefault("email_pattern", "")
+
     return {k: row[k] for k in OUTPUT_FIELDS}
 
 
