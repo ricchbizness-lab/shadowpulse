@@ -91,6 +91,23 @@ Corrigé : `scan_ssl()` interroge maintenant les logs Certificate Transparency (
 
 **Leçon générale :** dans un environnement sandbox avec proxy réseau, ne jamais faire confiance à une donnée réseau "trop belle pour être vraie" (valeur identique sur des dizaines d'entités indépendantes) sans vérifier via une source hors du sandbox (ici, CT logs publics) ou un outil externe indépendant.
 
+### 3.9 Désynchronisation silencieuse de shadow_pulse_demo.py entre branches
+
+Ce projet utilise deux branches actives avec des périmètres distincts :
+- `feature/shadow-pulse-pipeline` → code pipeline (idf_run.py, full_pipeline.py, shadow_pulse_demo.py)
+- `claude/git-ux-ui-design-pro-rmvd0w` → landing page en production + fix SSL CT logs
+
+Le fix CT logs (3.8) a été commité en premier sur `claude/git-ux-ui-design-pro-rmvd0w` (commits eae9328 + 7541052, 10 et 16 sept. 2026), mais **pas propagé à `feature/shadow-pulse-pipeline`** qui est restée sur l'ancienne `ssl.wrap_socket()`. Résultat : `idf_run.py scan10` a produit `ssl_ok=False` pour 5 cabinets avec SSL actif (adexco.fr 16j, acofex.fr 35j, extentis.com 145j) et 2 unindexed — tous au même score artificiel de 44/100.
+
+Corrigé le 23 sept. 2026 (commit ccb3c8b puis resync final) : les deux branches utilisent maintenant la même version de `scan_ssl()` basée sur crt.sh, avec 4 états distincts (`True`/`False`/`"unindexed"`/`"unreachable"`/`None`). `compute_exposure_score()` traite désormais `None` (erreur crt.sh) comme "indéterminé" (0 pts SSL) plutôt que comme "absent" (20 pts).
+
+**Règle à appliquer systématiquement à chaque futur fix de `shadow_pulse_demo.py` :**
+
+1. Appliquer le fix sur `feature/shadow-pulse-pipeline` (branche source pipeline)
+2. Vérifier immédiatement la divergence : `git log --oneline feature/shadow-pulse-pipeline...claude/git-ux-ui-design-pro-rmvd0w -- pipeline/shadow_pulse_demo.py`
+3. Si divergence détectée : propager vers l'autre branche dans le même commit ou le suivant — ne jamais laisser passer plus d'un commit de délai
+4. En début de session sur ce projet, relancer cette commande en priorité avant tout travail sur le pipeline
+
 ---
 
 ## 4. Méthodologie de qualification retenue
