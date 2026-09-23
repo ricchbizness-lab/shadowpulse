@@ -45,7 +45,7 @@ OUTPUT_FIELDS = [
     "ssl_ok", "ssl_days_left", "ssl_error",
     "http_reachable", "http_status", "missing_headers_count",
     "typosquatting_count", "typosquatting_mx_count",
-    "hunter_emails_count",
+    "hunter_emails_count", "hunter_email", "hunter_email_confidence",
     "xon_breach_count", "xon_breaches", "xon_checked_email",
     "scanned_at",
     "email_guess", "email_confiance", "email_pattern",
@@ -79,7 +79,20 @@ def flatten_scan(cab: Cabinet, scan: dict) -> dict:
     )
 
     hunter = scan.get("hunter", {})
-    row["hunter_emails_count"] = hunter.get("total_emails", "") if "error" not in hunter else "N/A"
+    if "error" not in hunter:
+        row["hunter_emails_count"] = hunter.get("total_emails", "")
+        emails = hunter.get("emails", [])
+        if emails:
+            best = max(emails, key=lambda e: e.get("confidence", 0))
+            row["hunter_email"] = best.get("email", "")
+            row["hunter_email_confidence"] = best.get("confidence", "")
+        else:
+            row["hunter_email"] = ""
+            row["hunter_email_confidence"] = ""
+    else:
+        row["hunter_emails_count"] = "N/A"
+        row["hunter_email"] = ""
+        row["hunter_email_confidence"] = ""
 
     xon = scan.get("xon", {})
     if xon.get("error") == "quota_horaire":
@@ -102,6 +115,8 @@ def flatten_scan(cab: Cabinet, scan: dict) -> dict:
     row.setdefault("email_guess", "")
     row.setdefault("email_confiance", "")
     row.setdefault("email_pattern", "")
+    row.setdefault("hunter_email", "")
+    row.setdefault("hunter_email_confidence", "")
 
     return {k: row[k] for k in OUTPUT_FIELDS}
 
