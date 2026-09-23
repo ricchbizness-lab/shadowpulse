@@ -74,25 +74,69 @@ def scan_dns(domain: str) -> dict:
 
 # ─── SSL ─────────────────────────────────────────────────────────────────────
 
-def scan_ssl(domain: str) -> dict:
-    """Vérifie que le certificat SSL est valide et récupère son expiration."""
-    import ssl
-    result = {"has_ssl": False, "expires": None, "days_left": None, "error": None}
+def _tcp_443_open(domain: str, timeout: float = 8.0) -> bool:
+    """Vérifie que le port 443 répond sans établir de handshake TLS."""
     try:
-        ctx = ssl.create_default_context()
-        with ctx.wrap_socket(socket.socket(), server_hostname=domain) as s:
-            s.settimeout(6)
-            s.connect((domain, 443))
-            cert = s.getpeercert()
-        not_after = cert.get("notAfter", "")
-        if not_after:
-            exp = datetime.strptime(not_after, "%b %d %H:%M:%S %Y %Z").replace(tzinfo=timezone.utc)
-            days_left = (exp - datetime.now(timezone.utc)).days
-            result.update({"has_ssl": True, "expires": not_after, "days_left": days_left})
+        with socket.create_connection((domain, 443), timeout=timeout):
+            return True
+    except OSError:
+        return False
+
+
+def scan_ssl(domain: str) -> dict:
+    """
+    Vérifie le certificat SSL via les logs Certificate Transparency (crt.sh).
+
+    Contourne le proxy sandbox qui re-signe tous les handshakes TLS avec son
+    propre certificat (~30j), ce qui faussait systématiquement les résultats.
+    crt.sh renvoie du JSON — le proxy intercepte la couche TLS mais ne modifie
+    pas le corps de la réponse HTTP.
+
+    Retourne has_ssl avec 4 valeurs possibles :
+      True        — certificat actif trouvé, days_left fiable
+      False       — des certs existent dans CT mais tous expirés
+      "unindexed" — TCP 443 ouvert mais aucun cert dans CT logs (CDN/wildcard)
+      "unreachable" — TCP 443 injoignable et aucun cert CT
+    """
+    import urllib.request as _urllib
+    result = {"has_ssl": None, "expires": None, "days_left": None, "error": None, "source": "ctlog"}
+    url = f"https://crt.sh/?q={domain}&output=json"
+    try:
+        req = _urllib.Request(url, headers={"User-Agent": "ShadowPulse-CTLogChecker/1.0"})
+        with _urllib.urlopen(req, timeout=30) as resp:
+            raw = resp.read()
+        if not raw.strip():
+            result["error"] = "crt.sh: réponse vide"
+            return result
+        certs = json.loads(raw)
+        now = datetime.now(timezone.utc)
+        active, expired = [], []
+        for c in certs:
+            try:
+                exp = datetime.strptime(c["not_after"], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=timezone.utc)
+                (active if exp > now else expired).append((exp, c))
+            except Exception:
+                pass
+        if active:
+            active.sort(key=lambda x: x[0], reverse=True)
+            exp, cert = active[0]
+            result.update({
+                "has_ssl": True,
+                "expires": cert["not_after"],
+                "days_left": (exp - now).days,
+            })
+            return result
+        if expired:
+            result.update({"has_ssl": False, "error": "tous les certs CT logs sont expirés"})
+            return result
+        # 0 certs dans CT logs : distinguer "site HTTPS muet" vs "TCP fermé"
+        if _tcp_443_open(domain):
+            result.update({"has_ssl": "unindexed",
+                           "error": "aucun cert dans CT logs mais TCP 443 joignable (CDN/wildcard probable)"})
         else:
-            result["has_ssl"] = True
-    except ssl.SSLCertVerificationError as e:
-        result["error"] = f"Cert invalide : {e}"
+            result.update({"has_ssl": "unreachable",
+                           "error": "TCP 443 injoignable et aucun cert dans CT logs"})
+        return result
     except Exception as e:
         result["error"] = str(e)
     return result
@@ -385,12 +429,23 @@ def compute_exposure_score(results: dict) -> int:
     """
     score = 0
 
-    # SSL absent ou expirant bientôt
+    # SSL — 4 cas distincts issus de scan_ssl() via CT logs
     ssl = results.get("ssl", {})
-    if ssl.get("error") or not ssl.get("has_ssl"):
-        score += 20
-    elif ssl.get("days_left") is not None and ssl["days_left"] < 30:
-        score += 10
+    has_ssl = ssl.get("has_ssl")
+    if has_ssl is True:
+        days = ssl.get("days_left")
+        if days is not None and days < 30:
+            score += 10   # cert actif mais expire bientôt
+    elif has_ssl == "unindexed":
+        score += 10   # TCP 443 ouvert mais cert non indexé — signal ambigu
+    elif has_ssl is False:
+        score += 20   # tous les certs CT logs expirés — absence confirmée
+    elif has_ssl == "unreachable":
+        score += 20   # port 443 fermé — SSL absent ou site hors ligne
+    elif has_ssl is None:
+        # Erreur lors de la requête crt.sh (timeout, etc.) — ne pas scorer
+        # comme "SSL absent" : on ne sait pas. Score = 0 pour cette composante.
+        pass
 
     # Headers de sécurité manquants (max 24 pts : 4 pts × 6 headers)
     http = results.get("http", {})

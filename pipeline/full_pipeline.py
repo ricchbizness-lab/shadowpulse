@@ -61,7 +61,8 @@ def flatten_scan(cab: Cabinet, scan: dict) -> dict:
     row["scanned_at"] = scan.get("scanned_at", "")
 
     ssl = scan.get("ssl", {})
-    row["ssl_ok"] = ssl.get("has_ssl", False)
+    # has_ssl peut être True / False / "unindexed" / "unreachable" / None
+    row["ssl_ok"] = ssl.get("has_ssl")  # None = erreur crt.sh (indéterminé)
     row["ssl_days_left"] = ssl.get("days_left", "")
     row["ssl_error"] = ssl.get("error", "")
 
