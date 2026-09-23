@@ -12,6 +12,7 @@ Usage :
   python idf_run.py sourcing
   python idf_run.py scan10
   python idf_run.py scan50
+  python idf_run.py enrich_hunter   # rétro-remplit Hunter sur scans existants
 """
 
 import argparse
@@ -37,7 +38,7 @@ from prospect_pipeline import (
     TRANCHES_API_PARAM, TRANCHES_CIBLES,
     Cabinet,
 )
-from shadow_pulse_demo import scan_domain, guess_and_verify_email
+from shadow_pulse_demo import scan_domain, guess_and_verify_email, scan_hunter
 from full_pipeline import flatten_scan, OUTPUT_FIELDS
 
 DEPTS = ["75", "77", "78", "91", "92", "93", "94", "95"]
@@ -371,11 +372,81 @@ def phase_enrich(limit: int = 25):
     print(f"\n  CSV mis à jour → {CSV_FILE}\n")
 
 
+def phase_enrich_hunter():
+    """
+    Appelle scan_hunter() UNIQUEMENT sur les cabinets déjà présents dans
+    idf_results.json dont hunter_emails_count est vide (="" ou absent) —
+    typiquement parce que HUNTER_API_KEY était absente lors du scan initial.
+    Met à jour hunter_emails_count + hunter_email + hunter_email_confidence
+    sans toucher à SSL, headers, score, ni XON.
+    """
+    rows = _load_results()
+    if not rows:
+        print("[!] Aucun résultat — lance d'abord scan10.")
+        return
+
+    to_update = [r for r in rows if r.get("hunter_emails_count", "") == ""]
+    if not to_update:
+        print(f"  Tous les cabinets ont déjà hunter_emails_count renseigné — rien à faire.")
+        return
+
+    print(f"\n{'='*65}")
+    print(f"  enrich_hunter — {len(to_update)} cabinet(s) sans données Hunter")
+    print(f"  {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}")
+    print(f"{'='*65}\n")
+
+    row_index = {r["siren"]: r for r in rows}
+    found, empty, errors = 0, 0, 0
+
+    for i, r in enumerate(to_update, 1):
+        domaine = r.get("domaine_guess", "")
+        print(f"  [{i}/{len(to_update)}] {r['nom'][:40]} → {domaine}")
+        if not domaine:
+            print("        ⏭ pas de domaine — ignoré")
+            continue
+
+        result = scan_hunter(domaine)
+
+        if "error" in result:
+            print(f"        [!] {result['error']}")
+            row_index[r["siren"]]["hunter_emails_count"] = "N/A"
+            row_index[r["siren"]]["hunter_email"] = ""
+            row_index[r["siren"]]["hunter_email_confidence"] = ""
+            errors += 1
+        else:
+            count = result.get("total_emails", 0)
+            emails = result.get("emails", [])
+            row_index[r["siren"]]["hunter_emails_count"] = count
+            if emails:
+                best = max(emails, key=lambda e: e.get("confidence", 0))
+                row_index[r["siren"]]["hunter_email"] = best.get("email", "")
+                row_index[r["siren"]]["hunter_email_confidence"] = best.get("confidence", "")
+                print(f"        ✓ {count} email(s) — meilleur: {best['email']} ({best.get('confidence')}%)")
+                found += 1
+            else:
+                row_index[r["siren"]]["hunter_email"] = ""
+                row_index[r["siren"]]["hunter_email_confidence"] = ""
+                print(f"        — 0 email indexé")
+                empty += 1
+
+        if i < len(to_update):
+            time.sleep(0.5)
+
+    _save_results(list(row_index.values()))
+    _export_csv(list(row_index.values()))
+
+    print(f"\n  ── Résumé enrich_hunter ──")
+    print(f"  Avec emails  : {found}")
+    print(f"  0 email      : {empty}")
+    print(f"  Erreurs      : {errors}")
+    print(f"  CSV mis à jour → {CSV_FILE}\n")
+
+
 # ─── CLI ─────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("phase", choices=["sourcing", "scan10", "scan50", "enrich", "enrich25"])
+    parser.add_argument("phase", choices=["sourcing", "scan10", "scan50", "enrich", "enrich25", "enrich_hunter"])
     args = parser.parse_args()
 
     print(f"\n  [CONFIG] Persistance → {_STATE_DIR}")
@@ -392,3 +463,5 @@ if __name__ == "__main__":
         phase_scan(10, 50, "Scan complet — 40 restants")
     elif args.phase in ("enrich", "enrich25"):
         phase_enrich(limit=25)
+    elif args.phase == "enrich_hunter":
+        phase_enrich_hunter()
