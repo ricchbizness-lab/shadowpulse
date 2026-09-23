@@ -293,33 +293,60 @@ def phase_enrich(limit: int = 25):
         print("[!] Aucun résultat à enrichir — lance d'abord scan10 + scan50.")
         return
 
-    # Cible : cabinets avec dirigeant connu et sans email déjà enrichi
+    # Cible : cabinets sans email déjà enrichi
+    # (dirigeant non requis — on utilise hunter_email en priorité)
     to_enrich = [
         r for r in rows
-        if r.get("dirigeant", "").strip()
-        and not r.get("email_confiance")   # skip already-processed (any outcome)
+        if not r.get("email_confiance")   # skip already-processed (any outcome)
     ][:limit]
 
     print(f"\n{'='*65}")
     print(f"  IDF Run — Enrichissement email ({limit} premiers éligibles)")
     print(f"  {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}")
     print(f"{'='*65}\n")
-    print(f"  Cabinets éligibles (dirigeant connu, pas encore enrichi) : {len(to_enrich)}")
-    print(f"  Méthode : SMTP RCPT TO — aucun email envoyé, délai {1.5}s/probe\n")
+    print(f"  Cabinets éligibles (pas encore enrichis) : {len(to_enrich)}")
+    print(f"  Stratégie : Hunter domain-search en priorité → Reoon guess-pattern si absent\n")
 
-    stats = {"email_haute": 0, "email_catchall": 0, "email_invalid": 0, "email_inconclusive": 0}
+    stats = {"email_haute": 0, "email_catchall": 0, "email_invalid": 0, "email_inconclusive": 0,
+             "hunter_direct": 0}
     row_index = {r["siren"]: r for r in rows}
 
     for i, r in enumerate(to_enrich, 1):
-        dirigeant = r["dirigeant"]
+        dirigeant = r.get("dirigeant", "")
         domaine   = r["domaine_guess"]
-        print(f"  [{i}/{len(to_enrich)}] {r['nom'][:35]} → {domaine} ({dirigeant[:30]})")
+        print(f"  [{i}/{len(to_enrich)}] {r['nom'][:35]} → {domaine}")
 
-        result = guess_and_verify_email(dirigeant, domaine)
+        hunter_email = r.get("hunter_email", "")
+        if hunter_email:
+            # Hunter a déjà trouvé un email lors du scan — pas besoin de Reoon
+            r["email_guess"]     = hunter_email
+            r["email_confiance"] = "email_haute"  # Hunter confidence ≥ scan-time filter
+            r["email_pattern"]   = "hunter_domain_search"
+            stats["hunter_direct"] = stats.get("hunter_direct", 0) + 1
+            print(f"        ✓ hunter_direct → {hunter_email}")
+        elif dirigeant.strip():
+            # Fallback : guess pattern + Reoon si dirigeant connu
+            result = guess_and_verify_email(dirigeant, domaine)
+            r["email_guess"]     = result.get("email_guess") or ""
+            r["email_confiance"] = result.get("email_confiance", "email_inconclusive")
+            r["email_pattern"]   = result.get("email_pattern") or ""
+            conf = r["email_confiance"]
+            stats[conf] = stats.get(conf, 0) + 1
+            label = {
+                "email_haute":        "✓ haute",
+                "email_catchall":     "~ catchall",
+                "email_invalid":      "✗ invalid",
+                "email_inconclusive": "? inconclusive",
+            }.get(conf, conf)
+            print(f"        {label} → {r['email_guess'] or '—'}")
+        else:
+            # Ni Hunter email ni dirigeant connu — inconclusive
+            r["email_guess"]     = ""
+            r["email_confiance"] = "email_inconclusive"
+            r["email_pattern"]   = ""
+            stats["email_inconclusive"] = stats.get("email_inconclusive", 0) + 1
+            print(f"        ? inconclusive — pas de hunter_email ni de dirigeant")
 
-        r["email_guess"]     = result.get("email_guess") or ""
-        r["email_confiance"] = result.get("email_confiance", "email_inconclusive")
-        r["email_pattern"]   = result.get("email_pattern") or ""
         row_index[r["siren"]].update(r)
 
         conf = r["email_confiance"]
