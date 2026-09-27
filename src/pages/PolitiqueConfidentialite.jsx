@@ -16,7 +16,7 @@ export default function PolitiqueConfidentialite() {
         Le responsable du traitement des données collectées sur ce site est
         <strong> ShadowPulse SAS</strong>, dont le siège social est situé au 66 Avenue des
         Champs-Élysées, 75008 Paris, France.
-        Contact : <a href="mailto:contact@shadowpulse.fr">contact@shadowpulse.fr</a>.
+        Contact : <a href="mailto:etude-cyber@shadowpulse.fr">etude-cyber@shadowpulse.fr</a>.
       </p>
 
       <h2>Données collectées</h2>
@@ -52,7 +52,7 @@ export default function PolitiqueConfidentialite() {
         Conformément au RGPD, vous disposez d'un droit d'accès, de rectification, de
         suppression et de portabilité de vos données, ainsi que d'un droit d'opposition
         et de limitation du traitement. Vous pouvez exercer ces droits à tout moment en
-        écrivant à <a href="mailto:contact@shadowpulse.fr">contact@shadowpulse.fr</a>.
+        écrivant à <a href="mailto:etude-cyber@shadowpulse.fr">etude-cyber@shadowpulse.fr</a>.
         Vous disposez également du droit d'introduire une réclamation auprès de la
         Commission Nationale de l'Informatique et des Libertés (CNIL).
       </p>

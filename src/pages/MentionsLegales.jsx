@@ -6,7 +6,7 @@ export default function MentionsLegales() {
     <LegalLayout title="Mentions légales" updated="9 août 2026">
       <h2>Éditeur du site</h2>
       <p>
-        Le site <strong>shadowpulse.fr</strong> (et son alias GitHub Pages
+        Le site <strong>etude.shadowpulse.fr</strong> (et son alias GitHub Pages
         ricchbizness-lab.github.io/shadowpulse) est édité par :
       </p>
       <ul>
@@ -14,7 +14,8 @@ export default function MentionsLegales() {
         <li><strong>Forme juridique :</strong> Société par actions simplifiée (SAS)</li>
         <li><strong>Siège social :</strong> 66 Avenue des Champs-Élysées, 75008 Paris, France</li>
         <li><strong>SIRET :</strong> 949 324 719 00010</li>
-        <li><strong>Contact :</strong> <a href="mailto:contact@shadowpulse.fr">contact@shadowpulse.fr</a></li>
+        <li><strong>Contact :</strong> <a href="mailto:etude-cyber@shadowpulse.fr">etude-cyber@shadowpulse.fr</a></li>
+        <li><strong>Téléphone :</strong> [NUMERO_TELEPHONE_A_COMPLETER]</li>
       </ul>
 
       <h2>Directeur de la publication</h2>
@@ -62,7 +63,7 @@ export default function MentionsLegales() {
       <h2>Contact</h2>
       <p>
         Pour toute question relative aux présentes mentions légales, vous pouvez nous
-        écrire à <a href="mailto:contact@shadowpulse.fr">contact@shadowpulse.fr</a>.
+        écrire à <a href="mailto:etude-cyber@shadowpulse.fr">etude-cyber@shadowpulse.fr</a>.
       </p>
     </LegalLayout>
   )

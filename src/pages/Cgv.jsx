@@ -38,7 +38,7 @@ export default function Cgv() {
         mois. Il peut être résilié par le client à tout moment, sous réserve du respect
         d'un <strong>préavis de 30 jours</strong> avant la prochaine échéance de
         facturation, par notification écrite à
-        <a href="mailto:contact@shadowpulse.fr"> contact@shadowpulse.fr</a>.
+        <a href="mailto:etude-cyber@shadowpulse.fr"> etude-cyber@shadowpulse.fr</a>.
       </p>
 
       <h2>Article 4 — Modalités de paiement</h2>
@@ -72,7 +72,7 @@ export default function Cgv() {
         <li><strong>PL &amp; PR Partners (ShadowPulse)</strong> — 66 Avenue des Champs-Élysées, 75008 Paris, France</li>
         <li><strong>SIRET :</strong> 949 324 719 00010</li>
         <li><strong>Directeur de publication :</strong> Patrick Lolot-Doressamy, Président de SAS</li>
-        <li><strong>Contact :</strong> <a href="mailto:contact@shadowpulse.fr">contact@shadowpulse.fr</a></li>
+        <li><strong>Contact :</strong> <a href="mailto:etude-cyber@shadowpulse.fr">etude-cyber@shadowpulse.fr</a></li>
       </ul>
     </LegalLayout>
   )
