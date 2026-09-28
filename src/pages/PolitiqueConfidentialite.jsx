@@ -3,7 +3,7 @@ import LegalLayout from '../components/LegalLayout.jsx'
 
 export default function PolitiqueConfidentialite() {
   return (
-    <LegalLayout title="Politique de confidentialité" updated="9 août 2026">
+    <LegalLayout title="Politique de confidentialité" updated="28 septembre 2026">
       <p className="legal-meta">
         ShadowPulse SAS accorde une attention particulière à la protection des données
         personnelles de ses utilisateurs et prospects, conformément au Règlement Général
@@ -32,12 +32,16 @@ export default function PolitiqueConfidentialite() {
         <li>Contenu du message transmis (optionnel)</li>
       </ul>
 
-      <h2>Finalité du traitement</h2>
-      <p>Les données collectées via le formulaire sont utilisées pour :</p>
+      <h2>Finalité et base légale du traitement</h2>
+      <p>
+        Les données collectées via le formulaire sont utilisées aux fins suivantes,
+        sur la base de l'<strong>intérêt légitime</strong> de ShadowPulse SAS
+        (art. 6(1)(f) du RGPD) :
+      </p>
       <ul>
         <li>Traiter votre demande de démonstration et vous recontacter ;</li>
         <li>Assurer un suivi commercial et, le cas échéant, vous adresser des
-          communications relatives à nos offres (prospection commerciale).</li>
+          communications relatives à nos offres (prospection commerciale B2B).</li>
       </ul>
 
       <h2>Durée de conservation</h2>
@@ -55,6 +59,14 @@ export default function PolitiqueConfidentialite() {
         écrivant à <a href="mailto:etude-cyber@shadowpulse.fr">etude-cyber@shadowpulse.fr</a>.
         Vous disposez également du droit d'introduire une réclamation auprès de la
         Commission Nationale de l'Informatique et des Libertés (CNIL).
+      </p>
+      <p>
+        <strong>Droit d'opposition à la prospection commerciale :</strong> vous pouvez
+        vous opposer à tout moment, sans justification et sans frais, à l'utilisation
+        de vos données à des fins de prospection commerciale, en écrivant à{' '}
+        <a href="mailto:etude-cyber@shadowpulse.fr">etude-cyber@shadowpulse.fr</a>.
+        Cette opposition vaut pour l'ensemble des communications commerciales
+        (art. 21(2) du RGPD).
       </p>
 
       <h2>Sous-traitants et destinataires</h2>
@@ -74,6 +86,14 @@ export default function PolitiqueConfidentialite() {
         <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">
           policies.google.com/privacy
         </a>.
+      </p>
+      <p>
+        Le site propose également un lien vers <strong>Calendly</strong> (Calendly Inc.,
+        271 17th St NW, Atlanta, GA 30363, États-Unis) pour la prise de rendez-vous.
+        Si vous utilisez ce service, vos données (nom, email, créneau choisi) sont
+        traitées par Calendly Inc. conformément à sa propre politique de
+        confidentialité. ShadowPulse SAS n'a pas accès à ces données et n'en est pas
+        responsable de traitement au sens du RGPD.
       </p>
 
       <h2>Cookies</h2>
