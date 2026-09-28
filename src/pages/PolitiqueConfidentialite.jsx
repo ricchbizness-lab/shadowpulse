@@ -57,10 +57,23 @@ export default function PolitiqueConfidentialite() {
         Commission Nationale de l'Informatique et des Libertés (CNIL).
       </p>
 
-      <h2>Transfert des données</h2>
+      <h2>Sous-traitants et destinataires</h2>
       <p>
-        Vos données ne font l'objet d'aucun transfert hors de l'Union européenne et ne
-        sont ni cédées ni revendues à des tiers.
+        Les données saisies via le formulaire de contact sont transmises à{' '}
+        <strong>Google LLC</strong> (1600 Amphitheatre Parkway, Mountain View, CA 94043,
+        États-Unis) via le service <strong>Google Forms</strong>, utilisé comme outil
+        de collecte et de stockage des réponses. Google LLC agit en qualité de
+        sous-traitant au sens de l'article 28 du RGPD et traite ces données
+        conformément à sa politique de confidentialité et aux clauses contractuelles
+        types approuvées par la Commission européenne (transfert vers un pays tiers).
+      </p>
+      <p>
+        Vos données ne sont ni cédées ni revendues à d'autres tiers. Pour toute
+        information sur les garanties encadrant ce transfert, vous pouvez consulter
+        la politique de confidentialité de Google à l'adresse{' '}
+        <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">
+          policies.google.com/privacy
+        </a>.
       </p>
 
       <h2>Cookies</h2>
