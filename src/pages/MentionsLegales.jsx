@@ -15,7 +15,7 @@ export default function MentionsLegales() {
         <li><strong>Siège social :</strong> 66 Avenue des Champs-Élysées, 75008 Paris, France</li>
         <li><strong>SIRET :</strong> 949 324 719 00010</li>
         <li><strong>Contact :</strong> <a href="mailto:etude-cyber@shadowpulse.fr">etude-cyber@shadowpulse.fr</a></li>
-        <li><strong>Téléphone :</strong> [NUMERO_TELEPHONE_A_COMPLETER]</li>
+        <li><strong>Téléphone :</strong> 0650515865</li>
       </ul>
 
       <h2>Directeur de la publication</h2>
