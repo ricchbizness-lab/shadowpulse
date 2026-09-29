@@ -15,8 +15,8 @@ Usage :
 Variables d'environnement (fichier .env) :
   HUNTER_API_KEY   — clé Hunter.io (optionnelle)
 
-XposedOrNot : aucune clé requise. Quota : 25 req/heure, 100 req/jour.
-Throttle interne : 2 s minimum entre chaque appel.
+XposedOrNot : désactivé par défaut. Activer avec --with-breach (ou with_breach=True).
+Quota XON : 25 req/heure, 100 req/jour — aucune clé requise.
 """
 
 import argparse
@@ -273,62 +273,46 @@ def scan_hunter(domain: str) -> dict:
         return {"error": str(e)}
 
 
-# ─── Email guess + Reoon API verify ─────────────────────────────────────────
+# ─── Email guess (pattern uniquement, score Hunter comme seule vérification) ──
 
 import unicodedata
 
-REOON_API_KEY = os.getenv("REOON_API_KEY", "KhbZJLvRPzUVsrUXCHTPyaEXzplvt5S8")
-REOON_DELAY   = 1.5   # secondes entre appels API (anti-throttle)
-
 
 def _normalize(s: str) -> str:
-    """Minuscules + suppression accents + garde lettres/chiffres/tirets."""
     s = unicodedata.normalize("NFD", s)
     s = "".join(c for c in s if unicodedata.category(c) != "Mn")
     return s.lower().strip()
 
 
 def _parse_dirigeant(dirigeant: str) -> tuple[str, str]:
-    """
-    Extrait (prénom, nom) depuis le champ dirigeant API.
-    Format habituel : 'PRENOM NOM' ou 'PRENOM NOM (NOM_NAISSANCE)'.
-    """
-    # Retire la partie entre parenthèses (nom de naissance)
     base = dirigeant.split("(")[0].strip()
     parts = base.split()
     if len(parts) == 0:
         return "", ""
     if len(parts) == 1:
         return parts[0], ""
-    # Convention API : PRENOMS d'abord, NOM en dernier
-    # Heuristique : si tout en majuscules (cas API), 1er token = prénom, reste = nom
     prenom = _normalize(parts[0])
     nom    = _normalize(parts[-1])
     return prenom, nom
 
 
 def generate_email_patterns(dirigeant: str, domaine: str) -> list[str]:
-    """
-    Génère les patterns d'email les plus probables pour un dirigeant.
-    Ordre décroissant de fréquence en France B2B.
-    """
+    """Génère les patterns d'email les plus probables. Ordre fréquence décroissante France B2B."""
     prenom, nom = _parse_dirigeant(dirigeant)
     if not prenom or not nom:
         return []
     p, n = prenom, nom
     p1 = p[0] if p else ""
-    n1 = n[0] if n else ""
     candidates = [
-        f"{p}.{n}@{domaine}",       # prenom.nom  (le plus commun)
-        f"{p1}.{n}@{domaine}",      # p.nom
-        f"{p}@{domaine}",           # prenom
-        f"{p}{n}@{domaine}",        # prenomnom
-        f"{p1}{n}@{domaine}",       # pnom
-        f"{n}.{p}@{domaine}",       # nom.prenom
-        f"{n}@{domaine}",           # nom seul
-        f"contact@{domaine}",       # fallback générique
+        f"{p}.{n}@{domaine}",
+        f"{p1}.{n}@{domaine}",
+        f"{p}@{domaine}",
+        f"{p}{n}@{domaine}",
+        f"{p1}{n}@{domaine}",
+        f"{n}.{p}@{domaine}",
+        f"{n}@{domaine}",
+        f"contact@{domaine}",
     ]
-    # Déduplique en préservant l'ordre
     seen, unique = set(), []
     for c in candidates:
         if c not in seen:
@@ -337,73 +321,18 @@ def generate_email_patterns(dirigeant: str, domaine: str) -> list[str]:
     return unique
 
 
-def _reoon_verify(email: str) -> dict:
-    """Vérifie un email via Reoon API (mode=power). Retourne le JSON brut."""
-    url = (
-        f"https://emailverifier.reoon.com/api/v1/verify"
-        f"?email={email}&key={REOON_API_KEY}&mode=power"
-    )
-    try:
-        resp = requests.get(url, timeout=15)
-        resp.raise_for_status()
-        return resp.json()
-    except Exception as e:
-        return {"status": "unknown", "error": str(e)}
-
-
-def _reoon_to_confiance(data: dict) -> str:
-    """
-    Mappe la réponse Reoon vers les 4 niveaux de confiance internes.
-    Basé sur les réponses réelles de l'API (testées sur contact@efca.fr,
-    contact@fiparco.fr, jean.pierre@bcm.fr).
-    """
-    status       = data.get("status", "unknown")
-    is_catch_all = data.get("is_catch_all", False)
-    is_safe      = data.get("is_safe_to_send", False)
-
-    if status == "invalid" or status in ("disposable", "spamtrap"):
-        return "email_invalid"
-    if status == "catch_all" or is_catch_all:
-        return "email_catchall"
-    if status == "valid":
-        return "email_haute"
-    if status == "role_account" and is_safe:
-        return "email_haute"
-    # unknown / tout le reste
-    return "email_inconclusive"
-
-
 def guess_and_verify_email(dirigeant: str, domaine: str) -> dict:
     """
-    Génère les patterns d'email probables pour un dirigeant et vérifie via Reoon API.
-
-    Retourne un dict avec :
-      email_guess     : adresse retenue (ou None)
-      email_confiance : 'email_haute' | 'email_catchall' | 'email_invalid' | 'email_inconclusive'
-      email_pattern   : pattern utilisé (ex: 'prenom.nom')
+    Retourne le premier pattern généré comme candidat.
+    La vérification réelle est faite par Hunter.io (score de confiance).
+    Reoon supprimé — quota épuisé et remplacé par stratégie Hunter-first.
     """
     patterns = generate_email_patterns(dirigeant, domaine)
     if not patterns:
         return {"email_guess": None, "email_confiance": "email_inconclusive", "email_pattern": None}
-
-    for i, candidate in enumerate(patterns):
-        if i > 0:
-            time.sleep(REOON_DELAY)
-        data = _reoon_verify(candidate)
-        confiance = _reoon_to_confiance(data)
-
-        if confiance == "email_haute":
-            local = candidate.split("@")[0]
-            return {"email_guess": candidate, "email_confiance": confiance, "email_pattern": local}
-        if confiance == "email_catchall":
-            local = candidate.split("@")[0]
-            return {"email_guess": candidate, "email_confiance": confiance, "email_pattern": local}
-        if confiance == "email_invalid":
-            continue
-        # inconclusive (unknown / API error) — arrêt pour ce domaine
-        return {"email_guess": None, "email_confiance": "email_inconclusive", "email_pattern": None}
-
-    return {"email_guess": None, "email_confiance": "email_invalid", "email_pattern": None}
+    candidate = patterns[0]
+    local = candidate.split("@")[0]
+    return {"email_guess": candidate, "email_confiance": "email_inconclusive", "email_pattern": local}
 
 
 # ─── XposedOrNot ─────────────────────────────────────────────────────────────
@@ -517,7 +446,7 @@ def compute_exposure_score(results: dict) -> int:
 
 # ─── Main ─────────────────────────────────────────────────────────────────────
 
-def scan_domain(domain: str) -> dict:
+def scan_domain(domain: str, with_breach: bool = False) -> dict:
     print(f"[*] Scan de {domain} …")
     results = {
         "domain": domain,
@@ -541,8 +470,11 @@ def scan_domain(domain: str) -> dict:
         results["hunter"] = scan_hunter(domain)
         time.sleep(0.5)
 
-    print("    XposedOrNot …")
-    results["xon"] = scan_xon(domain, results.get("hunter", {}))
+    if with_breach:
+        print("    XposedOrNot …")
+        results["xon"] = scan_xon(domain, results.get("hunter", {}))
+    else:
+        results["xon"] = {"skipped": True, "note": "désactivé par défaut — relancer avec --with-breach"}
 
     results["exposure_score"] = compute_exposure_score(results)
     return results
@@ -595,9 +527,11 @@ def main():
     parser = argparse.ArgumentParser(description="ShadowPulse — scan d'exposition d'un domaine")
     parser.add_argument("--domain", required=True, help="Domaine à scanner (ex: cabinet-exemple.fr)")
     parser.add_argument("--json", action="store_true", help="Sortie JSON brute")
+    parser.add_argument("--with-breach", action="store_true",
+                        help="Activer XposedOrNot (quota 25 req/h — désactivé par défaut)")
     args = parser.parse_args()
 
-    results = scan_domain(args.domain)
+    results = scan_domain(args.domain, with_breach=args.with_breach)
 
     if args.json:
         print(json.dumps(results, ensure_ascii=False, indent=2))
