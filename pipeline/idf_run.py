@@ -206,7 +206,7 @@ def _export_csv(rows: list[dict]):
     print(f"\n  CSV exporté → {CSV_FILE}  ({len(sorted_rows)} lignes)")
 
 
-def phase_scan(start: int, end: int, label: str):
+def phase_scan(start: int, end: int, label: str, with_breach: bool = False):
     pool = _load_pool()
     done_results = _load_results()
     already_scanned = {r["siren"] for r in done_results}
@@ -231,7 +231,7 @@ def phase_scan(start: int, end: int, label: str):
     for i, cab in enumerate(batch, 1):
         print(f"  [{start+i}/{end}] {cab.nom[:40]} (dept {cab.departement}) → {cab.domaine_guess}")
         try:
-            scan = scan_domain(cab.domaine_guess)
+            scan = scan_domain(cab.domaine_guess, with_breach=with_breach)
             row = flatten_scan(cab, scan)
             new_rows.append(row)
             print(f"        Score : {scan.get('exposure_score','?')}/100")
@@ -447,6 +447,8 @@ def phase_enrich_hunter():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("phase", choices=["sourcing", "scan10", "scan50", "enrich", "enrich25", "enrich_hunter"])
+    parser.add_argument("--with-breach", action="store_true",
+                        help="Activer XposedOrNot pendant le scan (quota 25 req/h — désactivé par défaut)")
     args = parser.parse_args()
 
     print(f"\n  [CONFIG] Persistance → {_STATE_DIR}")
@@ -457,10 +459,10 @@ if __name__ == "__main__":
     if args.phase == "sourcing":
         phase_sourcing()
     elif args.phase == "scan10":
-        phase_scan(0, 10, "Scan pilote — 10 premiers")
+        phase_scan(0, 10, "Scan pilote — 10 premiers", with_breach=args.with_breach)
     elif args.phase == "scan50":
-        phase_scan._checkpoint_every = 20   # CSV intermédiaire après 20 cabinets
-        phase_scan(10, 50, "Scan complet — 40 restants")
+        phase_scan._checkpoint_every = 20
+        phase_scan(10, 50, "Scan complet — 40 restants", with_breach=args.with_breach)
     elif args.phase in ("enrich", "enrich25"):
         phase_enrich(limit=25)
     elif args.phase == "enrich_hunter":
