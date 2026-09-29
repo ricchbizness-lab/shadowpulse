@@ -31,25 +31,25 @@ export default function MentionsLegales() {
       <h2>Propriété intellectuelle</h2>
       <p>
         L'ensemble des éléments présents sur ce site (textes, graphismes, logo, icônes,
-        structure, mise en page) est la propriété exclusive de ShadowPulse SAS, sauf
+        structure, mise en page) est la propriété exclusive de PL &amp; PR Partners (SIREN 949 324 719), exploitant le service ShadowPulse, sauf
         mention contraire, et est protégé par le droit français et international relatif
         à la propriété intellectuelle. Toute reproduction, représentation, modification,
         publication ou adaptation de tout ou partie des éléments du site, quel que soit
         le moyen ou le procédé utilisé, est interdite sans autorisation écrite préalable
-        de ShadowPulse SAS.
+        de PL &amp; PR Partners (SIREN 949 324 719).
       </p>
 
       <h2>Limitation de responsabilité</h2>
       <p>
-        ShadowPulse SAS s'efforce d'assurer l'exactitude et la mise à jour des
+        PL &amp; PR Partners (SIREN 949 324 719) s'efforce d'assurer l'exactitude et la mise à jour des
         informations diffusées sur ce site, mais ne saurait garantir l'exhaustivité,
-        l'exactitude ou l'actualité de ces informations. ShadowPulse SAS ne pourra être
+        l'exactitude ou l'actualité de ces informations. PL &amp; PR Partners (SIREN 949 324 719) ne pourra être
         tenue responsable des dommages directs ou indirects résultant de l'accès au site
         ou de l'impossibilité d'y accéder, ni de l'utilisation qui en est faite.
       </p>
       <p>
         Le site peut contenir des liens vers des sites tiers (par exemple Calendly).
-        ShadowPulse SAS n'exerce aucun contrôle sur ces sites et décline toute
+        PL &amp; PR Partners (SIREN 949 324 719) n'exerce aucun contrôle sur ces sites et décline toute
         responsabilité quant à leur contenu.
       </p>
 

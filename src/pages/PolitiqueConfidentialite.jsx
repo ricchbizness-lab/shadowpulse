@@ -5,7 +5,7 @@ export default function PolitiqueConfidentialite() {
   return (
     <LegalLayout title="Politique de confidentialité" updated="28 septembre 2026">
       <p className="legal-meta">
-        ShadowPulse SAS accorde une attention particulière à la protection des données
+        PL &amp; PR Partners (SIREN 949 324 719), qui exploite le service ShadowPulse, accorde une attention particulière à la protection des données
         personnelles de ses utilisateurs et prospects, conformément au Règlement Général
         sur la Protection des Données (RGPD — Règlement UE 2016/679) et à la loi
         Informatique et Libertés.
@@ -14,7 +14,7 @@ export default function PolitiqueConfidentialite() {
       <h2>Responsable de traitement</h2>
       <p>
         Le responsable du traitement des données collectées sur ce site est
-        <strong> ShadowPulse SAS</strong>, dont le siège social est situé au 66 Avenue des
+        <strong>PL &amp; PR Partners (SIREN 949 324 719)</strong>, qui exploite le service ShadowPulse, dont le siège social est situé au 66 Avenue des
         Champs-Élysées, 75008 Paris, France.
         Contact : <a href="mailto:etude-cyber@shadowpulse.fr">etude-cyber@shadowpulse.fr</a>.
       </p>
@@ -35,7 +35,7 @@ export default function PolitiqueConfidentialite() {
       <h2>Finalité et base légale du traitement</h2>
       <p>
         Les données collectées via le formulaire sont utilisées aux fins suivantes,
-        sur la base de l'<strong>intérêt légitime</strong> de ShadowPulse SAS
+        sur la base de l'<strong>intérêt légitime</strong> de PL &amp; PR Partners (SIREN 949 324 719)
         (art. 6(1)(f) du RGPD) :
       </p>
       <ul>
@@ -69,6 +69,42 @@ export default function PolitiqueConfidentialite() {
         (art. 21(2) du RGPD).
       </p>
 
+      <h2>Prospection commerciale B2B (données collectées indirectement)</h2>
+      <p>
+        PL &amp; PR Partners (SIREN 949 324 719), exploitant le service ShadowPulse,
+        peut contacter par email des professionnels dont les coordonnées n'ont pas été
+        collectées via ce site.
+      </p>
+      <p><strong>Données traitées :</strong> nom, prénom, fonction, adresse email
+        professionnelle, nom et adresse de la structure.</p>
+      <p>
+        <strong>Sources :</strong> registres publics d'entreprises (base SIRENE — INSEE),
+        sites web professionnels publiquement accessibles, et l'outil de recherche de
+        coordonnées <strong>Hunter.io</strong> (Trouver S.A.S., 16 rue de la Fidélité,
+        75010 Paris), qui collecte des adresses professionnelles publiées sur le web ou
+        les déduit à partir de sources publiques.
+      </p>
+      <p>
+        <strong>Finalité :</strong> prospection commerciale B2B en rapport direct avec
+        l'activité professionnelle du destinataire (services de cybersécurité et de
+        Digital Risk Monitoring).
+      </p>
+      <p>
+        <strong>Base légale :</strong> intérêt légitime (art. 6(1)(f) du RGPD) —
+        la prospection est ciblée sur des professionnels exerçant dans des secteurs
+        directement concernés par les risques cyber couverts par ShadowPulse.
+      </p>
+      <p>
+        <strong>Durée de conservation :</strong> 3 ans maximum à compter du dernier
+        contact ; suppression immédiate en cas d'opposition.
+      </p>
+      <p>
+        <strong>Vos droits :</strong> accès, rectification, suppression et opposition
+        à tout moment, sans justification ni frais, en répondant STOP à tout email
+        reçu ou en écrivant à{' '}
+        <a href="mailto:etude-cyber@shadowpulse.fr">etude-cyber@shadowpulse.fr</a>.
+      </p>
+
       <h2>Sous-traitants et destinataires</h2>
       <p>
         Les données saisies via le formulaire de contact sont transmises à{' '}
@@ -92,7 +128,7 @@ export default function PolitiqueConfidentialite() {
         271 17th St NW, Atlanta, GA 30363, États-Unis) pour la prise de rendez-vous.
         Si vous utilisez ce service, vos données (nom, email, créneau choisi) sont
         traitées par Calendly Inc. conformément à sa propre politique de
-        confidentialité. ShadowPulse SAS n'a pas accès à ces données et n'en est pas
+        confidentialité. PL &amp; PR Partners (exploitant ShadowPulse) n'a pas accès à ces données et n'en est pas
         responsable de traitement au sens du RGPD.
       </p>
 
@@ -105,7 +141,7 @@ export default function PolitiqueConfidentialite() {
 
       <h2>Sécurité</h2>
       <p>
-        ShadowPulse SAS met en œuvre les mesures techniques et organisationnelles
+        PL &amp; PR Partners (SIREN 949 324 719) met en œuvre les mesures techniques et organisationnelles
         raisonnables pour protéger les données collectées contre tout accès non
         autorisé, altération ou perte.
       </p>

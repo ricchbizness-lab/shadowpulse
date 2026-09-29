@@ -6,13 +6,13 @@ export default function Cgv() {
     <LegalLayout title="Conditions Générales de Vente" updated="9 août 2026">
       <p className="legal-meta">
         Les présentes Conditions Générales de Vente (CGV) régissent les relations
-        contractuelles entre ShadowPulse SAS et ses clients professionnels souscrivant
+        contractuelles entre PL &amp; PR Partners (SIREN 949 324 719), exploitant le service ShadowPulse, et ses clients professionnels souscrivant
         à un abonnement aux services décrits ci-dessous.
       </p>
 
       <h2>Article 1 — Objet</h2>
       <p>
-        ShadowPulse SAS propose des services d'abonnement mensuel de Cyber Threat
+        PL &amp; PR Partners (SIREN 949 324 719), exploitant le service ShadowPulse, propose des services d'abonnement mensuel de Cyber Threat
         Intelligence (CTI) et de Digital Risk Monitoring destinés aux PME et cabinets
         comptables, incluant notamment l'audit de surface d'attaque, le monitoring
         continu, les alertes contextualisées et les intégrations tierces décrites sur
@@ -51,11 +51,11 @@ export default function Cgv() {
 
       <h2>Article 5 — Responsabilité</h2>
       <p>
-        ShadowPulse SAS met en œuvre les moyens raisonnables pour assurer la fiabilité
+        PL &amp; PR Partners (SIREN 949 324 719) met en œuvre les moyens raisonnables pour assurer la fiabilité
         de son service de monitoring et de détection. Sa responsabilité, quelle qu'en
         soit la cause, est expressément limitée au montant total des sommes effectivement
         versées par le client au titre de l'abonnement au cours des
-        <strong> 12 derniers mois</strong> précédant le fait générateur. ShadowPulse SAS
+        <strong> 12 derniers mois</strong> précédant le fait générateur. PL &amp; PR Partners (SIREN 949 324 719)
         ne saurait être tenue responsable des dommages indirects, notamment toute perte
         d'exploitation, de données ou de chiffre d'affaires.
       </p>
