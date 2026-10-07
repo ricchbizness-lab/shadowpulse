@@ -306,7 +306,7 @@ def phase_enrich(limit: int = 25):
     print(f"  {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}")
     print(f"{'='*65}\n")
     print(f"  Cabinets éligibles (pas encore enrichis) : {len(to_enrich)}")
-    print(f"  Stratégie : Hunter domain-search en priorité → Reoon guess-pattern si absent\n")
+    print(f"  Stratégie : Hunter domain-search en priorité → pattern guess si absent\n")
 
     stats = {"email_haute": 0, "email_catchall": 0, "email_invalid": 0, "email_inconclusive": 0,
              "hunter_direct": 0}
@@ -319,14 +319,14 @@ def phase_enrich(limit: int = 25):
 
         hunter_email = r.get("hunter_email", "")
         if hunter_email:
-            # Hunter a déjà trouvé un email lors du scan — pas besoin de Reoon
+            # Hunter a déjà trouvé un email lors du scan
             r["email_guess"]     = hunter_email
             r["email_confiance"] = "email_haute"  # Hunter confidence ≥ scan-time filter
             r["email_pattern"]   = "hunter_domain_search"
             stats["hunter_direct"] = stats.get("hunter_direct", 0) + 1
             print(f"        ✓ hunter_direct → {hunter_email}")
         elif dirigeant.strip():
-            # Fallback : guess pattern + Reoon si dirigeant connu
+            # Fallback : pattern guess si dirigeant connu
             result = guess_and_verify_email(dirigeant, domaine)
             r["email_guess"]     = result.get("email_guess") or ""
             r["email_confiance"] = result.get("email_confiance", "email_inconclusive")

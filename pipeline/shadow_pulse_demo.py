@@ -325,7 +325,7 @@ def guess_and_verify_email(dirigeant: str, domaine: str) -> dict:
     """
     Retourne le premier pattern généré comme candidat.
     La vérification réelle est faite par Hunter.io (score de confiance).
-    Reoon supprimé — quota épuisé et remplacé par stratégie Hunter-first.
+    La vérification réelle est faite par Hunter.io (score de confiance).
     """
     patterns = generate_email_patterns(dirigeant, domaine)
     if not patterns:
