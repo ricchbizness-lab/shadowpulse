@@ -14,7 +14,7 @@ export default function PolitiqueConfidentialite() {
       <h2>Responsable de traitement</h2>
       <p>
         Le responsable du traitement des données collectées sur ce site est
-        <strong>PL &amp; PR Partners (SIREN 949 324 719)</strong>, qui exploite le service ShadowPulse, dont le siège social est situé au 66 Avenue des
+        <strong> PL &amp; PR Partners (SIREN 949 324 719)</strong>, qui exploite le service ShadowPulse, dont le siège social est situé au 66 Avenue des
         Champs-Élysées, 75008 Paris, France.
         Contact : <a href="mailto:etude-cyber@shadowpulse.fr">etude-cyber@shadowpulse.fr</a>.
       </p>
