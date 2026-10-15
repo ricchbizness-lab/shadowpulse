@@ -20,6 +20,7 @@ export default function Navbar({ linkPrefix = '', logoHref = '#' }) {
     { label: 'Problème', href: `${linkPrefix}#probleme` },
     { label: 'Solution', href: `${linkPrefix}#solution` },
     { label: 'Tarifs', href: `${linkPrefix}#tarifs` },
+    { label: 'Diagnostic DNS', href: `/diagnostic/`, external: false },
     { label: 'Contact', href: `${linkPrefix}#contact` },
   ]
 

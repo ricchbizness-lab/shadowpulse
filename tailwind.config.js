@@ -5,6 +5,7 @@ export default {
     './mentions-legales/index.html',
     './politique-de-confidentialite/index.html',
     './cgv/index.html',
+    './diagnostic/index.html',
     './src/**/*.{js,jsx}',
   ],
   theme: {

@@ -3,7 +3,7 @@ import LegalLayout from '../components/LegalLayout.jsx'
 
 export default function PolitiqueConfidentialite() {
   return (
-    <LegalLayout title="Politique de confidentialité" updated="7 octobre 2026">
+    <LegalLayout title="Politique de confidentialité" updated="15 octobre 2026">
       <p className="legal-meta">
         PL &amp; PR Partners (SIREN 949 324 719), qui exploite le service ShadowPulse, accorde une attention particulière à la protection des données
         personnelles de ses utilisateurs et prospects, conformément au Règlement Général
@@ -130,6 +130,29 @@ export default function PolitiqueConfidentialite() {
         confidentialité. PL &amp; PR Partners (exploitant ShadowPulse) n'a pas accès à ces données et n'en est pas
         responsable de traitement au sens du RGPD.
       </p>
+
+      <h2>Outil de diagnostic DNS</h2>
+      <p>
+        Le site propose un outil de diagnostic DNS gratuit accessible à l'adresse{' '}
+        <code>/diagnostic/</code>. Lorsque vous saisissez un nom de domaine dans cet outil :
+      </p>
+      <ul>
+        <li>Le nom de domaine est transmis au résolveur DNS de <strong>Cloudflare, Inc.</strong>{' '}
+          (101 Townsend St, San Francisco, CA 94107, États-Unis) via le protocole DNS over HTTPS
+          (DoH) à l'adresse cloudflare-dns.com, et en cas d'indisponibilité, au résolveur DNS de{' '}
+          <strong>Google LLC</strong> (dns.google).</li>
+        <li><strong>Adresse IP :</strong> chaque requête DNS transmise à Cloudflare, Inc. ou Google LLC
+          révèle votre adresse IP à ces sociétés, situées aux États-Unis (transfert de données hors
+          Union européenne). Ce transfert est encadré par leurs clauses contractuelles types ou
+          mécanismes équivalents reconnus par la Commission européenne.</li>
+        <li>Leurs politiques de confidentialité respectives s'appliquent :{' '}
+          <a href="https://developers.cloudflare.com/1.1.1.1/privacy/public-dns-resolver/" target="_blank" rel="noopener noreferrer">Cloudflare, Inc.</a>,{' '}
+          <a href="https://developers.google.com/speed/public-dns/privacy" target="_blank" rel="noopener noreferrer">Google Public DNS</a>.</li>
+        <li>PL &amp; PR Partners (exploitant ShadowPulse) ne conserve ni le nom de domaine saisi, ni les
+          résultats de la requête, ni votre adresse IP. Aucun compte n'est requis pour utiliser cet outil.</li>
+        <li>L'outil est limité à 5 requêtes par minute côté client et n'effectue aucun scan de ports
+          ni connexion directe au domaine analysé.</li>
+      </ul>
 
       <h2>Cookies</h2>
       <p>
