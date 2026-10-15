@@ -73,6 +73,12 @@ export async function lookupTXT(name) {
   return { records, nxdomain: false, error: null, timedOut: false }
 }
 
+export async function lookupSOA(name) {
+  const data = await dohQuery(name, 'SOA')
+  if (data.Status === 3) return { exists: false }
+  return { exists: true } // treat all other statuses (including errors) as "exists"
+}
+
 export async function lookupMX(name) {
   const data = await dohQuery(name, 'MX')
   if (data.Status === 3) return { records: [], nxdomain: true, error: null, timedOut: false }

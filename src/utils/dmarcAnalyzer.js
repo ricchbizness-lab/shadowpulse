@@ -74,9 +74,10 @@ export function analyzeDMARC({ records, nxdomain, error, timedOut }) {
     issues.push(`Valeur de politique inconnue : p=${policy}`)
   }
 
-  const verdict = policy === 'reject'      ? 'protégé'
-                : policy === 'quarantine'  ? 'surveillance'
-                : policy === 'none'        ? 'surveillance'
+  const verdict = policy === 'reject'                    ? 'protégé'
+                : policy === 'quarantine' && pct === 100 ? 'quarantaine'
+                : policy === 'quarantine'                ? 'quarantaine partielle'
+                : policy === 'none'                      ? 'surveillance'
                 : 'invalid'
 
   return { verdict, issues, raw, policy, pct, rua, sp }
@@ -130,9 +131,10 @@ export function analyzeSPF({ records, nxdomain, error, timedOut }) {
     issues.push(`${totalLookups} requêtes DNS estimées — approche la limite de 10. Vérifiez avant d'ajouter de nouveaux include:.`)
   }
 
-  const verdict = qualifier === '-' && issues.length === 0 ? 'protégé'
-                : qualifier === '-'                        ? 'surveillance'
-                : qualifier === '~'                        ? 'surveillance'
+  const verdict = qualifier === '-' ? 'strict'
+                : qualifier === '~' ? 'acceptable'
+                : qualifier === '?' ? 'faible'
+                : qualifier === '+' ? 'dangereux'
                 : 'absent'
 
   return { verdict, issues, raw, qualifier, includeCount: includes }

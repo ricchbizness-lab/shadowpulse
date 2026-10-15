@@ -85,21 +85,22 @@ describe('analyzeDMARC', () => {
     expect(r.issues.some(i => i.includes('rua'))).toBe(true)
   })
 
-  it('parses p=quarantine → verdict surveillance', () => {
+  it('parses p=quarantine pct=100 → verdict quarantaine', () => {
     const r = analyzeDMARC({
       records: ['v=DMARC1; p=quarantine; pct=100; rua=mailto:x@ex.fr'],
       nxdomain: false, error: null, timedOut: false,
     })
-    expect(r.verdict).toBe('surveillance')
+    expect(r.verdict).toBe('quarantaine')
     expect(r.policy).toBe('quarantine')
     expect(r.pct).toBe(100)
   })
 
-  it('quarantine with pct<100 warns', () => {
+  it('quarantine with pct<100 → verdict quarantaine partielle', () => {
     const r = analyzeDMARC({
       records: ['v=DMARC1; p=quarantine; pct=25'],
       nxdomain: false, error: null, timedOut: false,
     })
+    expect(r.verdict).toBe('quarantaine partielle')
     expect(r.issues.some(i => i.includes('pct=25'))).toBe(true)
   })
 
@@ -152,21 +153,21 @@ describe('analyzeSPF', () => {
     expect(r.issues.some(i => i.includes('+all'))).toBe(true)
   })
 
-  it('~all → verdict surveillance', () => {
+  it('~all → verdict acceptable (existing test)', () => {
     const r = analyzeSPF({
       records: ['v=spf1 include:_spf.google.com ~all'],
       nxdomain: false, error: null, timedOut: false,
     })
-    expect(r.verdict).toBe('surveillance')
+    expect(r.verdict).toBe('acceptable')
     expect(r.qualifier).toBe('~')
   })
 
-  it('-all → verdict protégé', () => {
+  it('-all → verdict strict', () => {
     const r = analyzeSPF({
       records: ['v=spf1 include:_spf.google.com -all'],
       nxdomain: false, error: null, timedOut: false,
     })
-    expect(r.verdict).toBe('protégé')
+    expect(r.verdict).toBe('strict')
     expect(r.qualifier).toBe('-')
   })
 
@@ -207,6 +208,22 @@ describe('analyzeSPF', () => {
   it('returns timeout on timedOut', () => {
     const r = analyzeSPF({ records: [], nxdomain: false, error: null, timedOut: true })
     expect(r.verdict).toBe('timeout')
+  })
+
+  it('~all → verdict acceptable', () => {
+    const r = analyzeSPF({
+      records: ['v=spf1 include:_spf.google.com ~all'],
+      nxdomain: false, error: null, timedOut: false,
+    })
+    expect(r.verdict).toBe('acceptable')
+  })
+
+  it('-all → verdict strict', () => {
+    const r = analyzeSPF({
+      records: ['v=spf1 include:_spf.google.com -all'],
+      nxdomain: false, error: null, timedOut: false,
+    })
+    expect(r.verdict).toBe('strict')
   })
 })
 

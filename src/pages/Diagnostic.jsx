@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback } from 'react'
 import Navbar from '../components/Navbar.jsx'
 import Footer from '../components/Footer.jsx'
 import { normalizeDomain, validateDomain, analyzeDMARC, analyzeSPF, analyzeMX } from '../utils/dmarcAnalyzer.js'
-import { lookupTXT, lookupMX } from '../utils/dnsLookup.js'
+import { lookupTXT, lookupMX, lookupSOA } from '../utils/dnsLookup.js'
 
 const BASE = import.meta.env.BASE_URL
 const CALENDLY = 'https://calendly.com/ricch-bizness/new-meeting'
@@ -19,13 +19,19 @@ function isRateLimited() {
 
 /* ─── Status badge ─── */
 const BADGE = {
-  protégé:     { bg: 'bg-emerald-500/15', text: 'text-emerald-400', border: 'border-emerald-500/30', dot: 'bg-emerald-400' },
-  surveillance:{ bg: 'bg-amber-500/15',   text: 'text-amber-400',   border: 'border-amber-500/30',   dot: 'bg-amber-400' },
-  absent:      { bg: 'bg-red-500/15',     text: 'text-red-400',     border: 'border-red-500/30',     dot: 'bg-red-400' },
-  invalid:     { bg: 'bg-red-500/15',     text: 'text-red-400',     border: 'border-red-500/30',     dot: 'bg-red-400' },
-  présent:     { bg: 'bg-emerald-500/15', text: 'text-emerald-400', border: 'border-emerald-500/30', dot: 'bg-emerald-400' },
-  timeout:     { bg: 'bg-slate-500/15',   text: 'text-slate-400',   border: 'border-slate-500/30',   dot: 'bg-slate-400' },
-  error:       { bg: 'bg-slate-500/15',   text: 'text-slate-400',   border: 'border-slate-500/30',   dot: 'bg-slate-400' },
+  protégé:              { bg: 'bg-emerald-500/15', text: 'text-emerald-400', border: 'border-emerald-500/30', dot: 'bg-emerald-400' },
+  quarantaine:          { bg: 'bg-amber-500/15',   text: 'text-amber-400',   border: 'border-amber-500/30',   dot: 'bg-amber-400' },
+  'quarantaine partielle': { bg: 'bg-amber-500/15', text: 'text-amber-400',  border: 'border-amber-500/30',   dot: 'bg-amber-400' },
+  surveillance:         { bg: 'bg-amber-500/15',   text: 'text-amber-400',   border: 'border-amber-500/30',   dot: 'bg-amber-400' },
+  strict:               { bg: 'bg-emerald-500/15', text: 'text-emerald-400', border: 'border-emerald-500/30', dot: 'bg-emerald-400' },
+  acceptable:           { bg: 'bg-amber-500/15',   text: 'text-amber-400',   border: 'border-amber-500/30',   dot: 'bg-amber-400' },
+  faible:               { bg: 'bg-orange-500/15',  text: 'text-orange-400',  border: 'border-orange-500/30',  dot: 'bg-orange-400' },
+  dangereux:            { bg: 'bg-red-500/15',     text: 'text-red-400',     border: 'border-red-500/30',     dot: 'bg-red-400' },
+  absent:               { bg: 'bg-red-500/15',     text: 'text-red-400',     border: 'border-red-500/30',     dot: 'bg-red-400' },
+  invalid:              { bg: 'bg-red-500/15',     text: 'text-red-400',     border: 'border-red-500/30',     dot: 'bg-red-400' },
+  présent:              { bg: 'bg-emerald-500/15', text: 'text-emerald-400', border: 'border-emerald-500/30', dot: 'bg-emerald-400' },
+  timeout:              { bg: 'bg-slate-500/15',   text: 'text-slate-400',   border: 'border-slate-500/30',   dot: 'bg-slate-400' },
+  error:                { bg: 'bg-slate-500/15',   text: 'text-slate-400',   border: 'border-slate-500/30',   dot: 'bg-slate-400' },
 }
 
 function Badge({ verdict, label }) {
@@ -173,16 +179,29 @@ export default function Diagnostic() {
     setDomain(normalized)
 
     try {
+      const soaRes = await lookupSOA(normalized)
+      if (!soaRes.exists) {
+        setError("Domaine introuvable, vérifiez l'orthographe.")
+        setLoading(false)
+        return
+      }
+
       const [dmarcRes, spfRes, mxRes] = await Promise.all([
         lookupTXT(`_dmarc.${normalized}`),
         lookupTXT(normalized),
         lookupMX(normalized),
       ])
 
+      const mxResult = analyzeMX(mxRes)
+      const dmarcResult = analyzeDMARC(dmarcRes)
+      if (!mxResult.present && dmarcResult.verdict !== 'absent' && dmarcResult.verdict !== 'error' && dmarcResult.verdict !== 'timeout') {
+        dmarcResult.issues = [...dmarcResult.issues, "Ce domaine n'a pas de serveur de messagerie : DMARC est peu pertinent."]
+      }
+
       setResults({
-        dmarc: analyzeDMARC(dmarcRes),
+        dmarc: dmarcResult,
         spf:   analyzeSPF(spfRes),
-        mx:    analyzeMX(mxRes),
+        mx:    mxResult,
       })
     } catch (err) {
       setError(`Erreur inattendue : ${err.message}`)
@@ -196,13 +215,13 @@ export default function Diagnostic() {
     run()
   }
 
-  /* Global verdict */
+  /* Global verdict — driven by DMARC only */
   let globalVerdict = null
   if (results) {
-    const worst = [results.dmarc.verdict, results.spf.verdict]
-    if (worst.includes('absent') || worst.includes('invalid')) globalVerdict = 'absent'
-    else if (worst.includes('surveillance')) globalVerdict = 'surveillance'
-    else globalVerdict = 'protégé'
+    const dv = results.dmarc.verdict
+    if (dv === 'protégé') globalVerdict = 'protégé'
+    else if (dv === 'quarantaine' || dv === 'quarantaine partielle') globalVerdict = 'surveillance'
+    else globalVerdict = 'absent'
   }
 
   return (
@@ -328,7 +347,7 @@ export default function Diagnostic() {
 
                 <Row
                   label="DMARC (_dmarc)"
-                  badge={{ verdict: results.dmarc.verdict, label: verdictLabel(results.dmarc.verdict) }}
+                  badge={{ verdict: results.dmarc.verdict, label: verdictLabel(results.dmarc.verdict, results.dmarc.pct) }}
                   issues={results.dmarc.issues}
                   raw={results.dmarc.raw}
                 />
@@ -383,6 +402,12 @@ export default function Diagnostic() {
   )
 }
 
-function verdictLabel(v) {
-  return { protégé: 'Protégé', surveillance: 'Surveillance', absent: 'Absent', invalid: 'Invalide', timeout: 'Timeout', error: 'Erreur' }[v] || v
+function verdictLabel(v, pct) {
+  const map = {
+    protégé: 'Protégé', quarantaine: 'Quarantaine', 'quarantaine partielle': `Quarantaine partielle (pct=${pct ?? ''})`,
+    surveillance: 'Surveillance', strict: 'Strict (-all)', acceptable: 'Acceptable (~all)',
+    faible: 'Faible (?all)', dangereux: 'Dangereux (+all)', absent: 'Absent',
+    invalid: 'Invalide', timeout: 'Timeout', error: 'Erreur',
+  }
+  return map[v] || v
 }
