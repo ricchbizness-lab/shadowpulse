@@ -794,6 +794,15 @@ function ContactSection() {
 
 /* ─── App ─── */
 export default function App() {
+  useEffect(() => {
+    const hash = window.location.hash
+    if (!hash) return
+    requestAnimationFrame(() => {
+      const el = document.querySelector(hash)
+      if (el) el.scrollIntoView({ behavior: 'smooth' })
+    })
+  }, [])
+
   return (
     <>
       <Navbar />
