@@ -113,10 +113,12 @@ function HowToFix({ domain, dmarcVerdict, pct }) {
     <div className="rounded-2xl bg-[#1A1F2E] border border-[#1E3A5F]/60 p-6 sm:p-8">
       <h2 className="text-lg font-bold text-[#F8FAFC] mb-4">Comment corriger</h2>
       <p className="text-sm text-[#94A3B8] mb-4">
-        Commencez toujours par la <strong className="text-[#F8FAFC]">surveillance (p=none)</strong> afin
-        de collecter des rapports sans risquer de bloquer des emails légitimes. Analysez-les pendant 2 à 4 semaines
-        via un service comme dmarcian ou Postmark, puis passez à{' '}
+        Si vous n'avez pas encore de rapports, commencez par <code className="text-[#06B6D4]">p=none</code> pour
+        observer sans rien bloquer. Une fois les rapports propres (2 à 4 semaines), passez à{' '}
         <code className="text-[#06B6D4]">p=quarantine</code> puis <code className="text-[#06B6D4]">p=reject</code>.
+      </p>
+      <p className="text-sm text-[#94A3B8] mb-4">
+        Remplacez l'adresse rua par une boîte que vous lisez, ou par celle d'un service de rapports DMARC.
       </p>
       <div className="space-y-4">
         <div>
@@ -494,7 +496,7 @@ export default function Diagnostic() {
                   badge={{
                     verdict: results.mx.verdict,
                     label: results.mx.present
-                      ? `${results.mx.count} enregistrement${results.mx.count > 1 ? 's' : ''}`
+                      ? `${results.mx.count} enregistrement${results.mx.count !== 1 ? 's' : ''}`
                       : 'Absent',
                   }}
                   issues={results.mx.present ? [] : ['Aucun serveur de messagerie configuré.']}
