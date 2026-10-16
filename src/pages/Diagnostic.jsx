@@ -19,19 +19,19 @@ function isRateLimited() {
 
 /* ─── Status badge ─── */
 const BADGE = {
-  protégé:              { bg: 'bg-emerald-500/15', text: 'text-emerald-400', border: 'border-emerald-500/30', dot: 'bg-emerald-400' },
-  quarantaine:          { bg: 'bg-amber-500/15',   text: 'text-amber-400',   border: 'border-amber-500/30',   dot: 'bg-amber-400' },
-  'quarantaine partielle': { bg: 'bg-amber-500/15', text: 'text-amber-400',  border: 'border-amber-500/30',   dot: 'bg-amber-400' },
-  surveillance:         { bg: 'bg-amber-500/15',   text: 'text-amber-400',   border: 'border-amber-500/30',   dot: 'bg-amber-400' },
-  strict:               { bg: 'bg-emerald-500/15', text: 'text-emerald-400', border: 'border-emerald-500/30', dot: 'bg-emerald-400' },
-  acceptable:           { bg: 'bg-amber-500/15',   text: 'text-amber-400',   border: 'border-amber-500/30',   dot: 'bg-amber-400' },
-  faible:               { bg: 'bg-orange-500/15',  text: 'text-orange-400',  border: 'border-orange-500/30',  dot: 'bg-orange-400' },
-  dangereux:            { bg: 'bg-red-500/15',     text: 'text-red-400',     border: 'border-red-500/30',     dot: 'bg-red-400' },
-  absent:               { bg: 'bg-red-500/15',     text: 'text-red-400',     border: 'border-red-500/30',     dot: 'bg-red-400' },
-  invalid:              { bg: 'bg-red-500/15',     text: 'text-red-400',     border: 'border-red-500/30',     dot: 'bg-red-400' },
-  présent:              { bg: 'bg-emerald-500/15', text: 'text-emerald-400', border: 'border-emerald-500/30', dot: 'bg-emerald-400' },
-  timeout:              { bg: 'bg-slate-500/15',   text: 'text-slate-400',   border: 'border-slate-500/30',   dot: 'bg-slate-400' },
-  error:                { bg: 'bg-slate-500/15',   text: 'text-slate-400',   border: 'border-slate-500/30',   dot: 'bg-slate-400' },
+  protégé:                 { bg: 'bg-emerald-500/15', text: 'text-emerald-400', border: 'border-emerald-500/30', dot: 'bg-emerald-400' },
+  quarantaine:             { bg: 'bg-amber-500/15',   text: 'text-amber-400',   border: 'border-amber-500/30',   dot: 'bg-amber-400' },
+  'quarantaine partielle': { bg: 'bg-orange-500/15',  text: 'text-orange-400',  border: 'border-orange-500/30',  dot: 'bg-orange-400' },
+  surveillance:            { bg: 'bg-amber-500/15',   text: 'text-amber-400',   border: 'border-amber-500/30',   dot: 'bg-amber-400' },
+  strict:                  { bg: 'bg-emerald-500/15', text: 'text-emerald-400', border: 'border-emerald-500/30', dot: 'bg-emerald-400' },
+  acceptable:              { bg: 'bg-amber-500/15',   text: 'text-amber-400',   border: 'border-amber-500/30',   dot: 'bg-amber-400' },
+  faible:                  { bg: 'bg-orange-500/15',  text: 'text-orange-400',  border: 'border-orange-500/30',  dot: 'bg-orange-400' },
+  dangereux:               { bg: 'bg-red-500/15',     text: 'text-red-400',     border: 'border-red-500/30',     dot: 'bg-red-400' },
+  absent:                  { bg: 'bg-red-500/15',     text: 'text-red-400',     border: 'border-red-500/30',     dot: 'bg-red-400' },
+  invalid:                 { bg: 'bg-red-500/15',     text: 'text-red-400',     border: 'border-red-500/30',     dot: 'bg-red-400' },
+  présent:                 { bg: 'bg-emerald-500/15', text: 'text-emerald-400', border: 'border-emerald-500/30', dot: 'bg-emerald-400' },
+  timeout:                 { bg: 'bg-slate-500/15',   text: 'text-slate-400',   border: 'border-slate-500/30',   dot: 'bg-slate-400' },
+  error:                   { bg: 'bg-slate-500/15',   text: 'text-slate-400',   border: 'border-slate-500/30',   dot: 'bg-slate-400' },
 }
 
 function Badge({ verdict, label }) {
@@ -87,55 +87,133 @@ function Row({ label, badge, issues, raw }) {
   )
 }
 
-/* ─── How to fix section ─── */
-function HowToFix({ domain }) {
-  return (
-    <div className="mt-8 rounded-2xl bg-[#1A1F2E] border border-[#1E3A5F]/60 p-6 sm:p-8">
-      <h2 className="text-lg font-bold text-[#F8FAFC] mb-4">Comment corriger</h2>
+/* ─── "Comment corriger" section ─── */
+function HowToFix({ domain, dmarcVerdict, pct }) {
+  const d = domain || 'votre-domaine.fr'
 
+  if (dmarcVerdict === 'quarantaine partielle') {
+    return (
+      <div className="rounded-2xl bg-[#1A1F2E] border border-[#1E3A5F]/60 p-6 sm:p-8">
+        <h2 className="text-lg font-bold text-[#F8FAFC] mb-4">Comment corriger</h2>
+        <p className="text-sm text-[#94A3B8] mb-4">
+          Retirez le tag <code className="text-[#06B6D4]">pct</code> ou montez-le à 100 pour que la politique
+          s'applique à la totalité des emails.
+        </p>
+        <pre className="text-xs text-[#06B6D4] bg-[#0B1929] rounded-lg p-3 overflow-x-auto border border-[#1E3A5F]/40 leading-relaxed">
+{`_dmarc.${d}  TXT  "v=DMARC1; p=quarantine; rua=mailto:dmarc@${d}; pct=100; adkim=r; aspf=r"`}
+        </pre>
+        <p className="text-xs text-[#475569] mt-4">
+          DKIM non analysé ici — votre fournisseur d'emails vous donnera votre sélecteur DKIM actuel.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="rounded-2xl bg-[#1A1F2E] border border-[#1E3A5F]/60 p-6 sm:p-8">
+      <h2 className="text-lg font-bold text-[#F8FAFC] mb-4">Comment corriger</h2>
       <p className="text-sm text-[#94A3B8] mb-4">
         Commencez toujours par la <strong className="text-[#F8FAFC]">surveillance (p=none)</strong> afin
-        de collecter des rapports sans risquer de bloquer des emails légitimes. Analysez les rapports
-        pendant 2 à 4 semaines via un service comme dmarcian ou Postmark, puis passez à{' '}
+        de collecter des rapports sans risquer de bloquer des emails légitimes. Analysez-les pendant 2 à 4 semaines
+        via un service comme dmarcian ou Postmark, puis passez à{' '}
         <code className="text-[#06B6D4]">p=quarantine</code> puis <code className="text-[#06B6D4]">p=reject</code>.
       </p>
-
       <div className="space-y-4">
         <div>
           <p className="text-xs font-semibold text-[#475569] uppercase tracking-wider mb-2">Étape 1 — Surveillance</p>
           <pre className="text-xs text-[#06B6D4] bg-[#0B1929] rounded-lg p-3 overflow-x-auto border border-[#1E3A5F]/40 leading-relaxed">
-{`_dmarc.${domain || 'votre-domaine.fr'}  TXT  "v=DMARC1; p=none; rua=mailto:dmarc@${domain || 'votre-domaine.fr'}; pct=100; adkim=r; aspf=r"`}
+{`_dmarc.${d}  TXT  "v=DMARC1; p=none; rua=mailto:dmarc@${d}; pct=100; adkim=r; aspf=r"`}
           </pre>
         </div>
         <div>
-          <p className="text-xs font-semibold text-[#475569] uppercase tracking-wider mb-2">Étape 2 — Quarantaine (après analyse des rapports)</p>
+          <p className="text-xs font-semibold text-[#475569] uppercase tracking-wider mb-2">Étape 2 — Quarantaine</p>
           <pre className="text-xs text-[#06B6D4] bg-[#0B1929] rounded-lg p-3 overflow-x-auto border border-[#1E3A5F]/40 leading-relaxed">
-{`_dmarc.${domain || 'votre-domaine.fr'}  TXT  "v=DMARC1; p=quarantine; rua=mailto:dmarc@${domain || 'votre-domaine.fr'}; pct=25; adkim=r; aspf=r"`}
+{`_dmarc.${d}  TXT  "v=DMARC1; p=quarantine; rua=mailto:dmarc@${d}; pct=100; adkim=r; aspf=r"`}
           </pre>
         </div>
         <div>
           <p className="text-xs font-semibold text-[#475569] uppercase tracking-wider mb-2">Étape 3 — Rejet (protection complète)</p>
           <pre className="text-xs text-[#06B6D4] bg-[#0B1929] rounded-lg p-3 overflow-x-auto border border-[#1E3A5F]/40 leading-relaxed">
-{`_dmarc.${domain || 'votre-domaine.fr'}  TXT  "v=DMARC1; p=reject; rua=mailto:dmarc@${domain || 'votre-domaine.fr'}; pct=100; adkim=s; aspf=s"`}
+{`_dmarc.${d}  TXT  "v=DMARC1; p=reject; rua=mailto:dmarc@${d}; pct=100; adkim=s; aspf=s"`}
           </pre>
         </div>
       </div>
-
       <p className="text-xs text-[#475569] mt-4">
-        DKIM n'est pas analysé ici — les sélecteurs ne sont pas énumérables par DNS. Votre fournisseur d'emails vous donnera votre sélecteur DKIM actuel.
+        DKIM non analysé ici — votre fournisseur d'emails vous donnera votre sélecteur DKIM actuel.
       </p>
     </div>
   )
 }
 
-/* ─── CTA section ─── */
-function CTABlock() {
+/* ─── "Pour aller plus loin" section ─── */
+function GoFurther({ domain, dmarcVerdict }) {
+  const d = domain || 'votre-domaine.fr'
+
+  if (dmarcVerdict === 'quarantaine') {
+    return (
+      <div className="rounded-2xl bg-[#1A1F2E] border border-[#1E3A5F]/60 p-6 sm:p-8">
+        <h2 className="text-lg font-bold text-[#F8FAFC] mb-4">Pour aller plus loin</h2>
+        <p className="text-sm text-[#94A3B8] mb-4">
+          La quarantaine est une étape intermédiaire. Pour une protection maximale, passez à{' '}
+          <code className="text-[#06B6D4]">p=reject</code> — les faux emails seront rejetés directement
+          et n'atteindront jamais les boîtes de vos correspondants.
+        </p>
+        <pre className="text-xs text-[#06B6D4] bg-[#0B1929] rounded-lg p-3 overflow-x-auto border border-[#1E3A5F]/40 leading-relaxed">
+{`_dmarc.${d}  TXT  "v=DMARC1; p=reject; rua=mailto:dmarc@${d}; pct=100; adkim=s; aspf=s"`}
+        </pre>
+        <p className="text-xs text-[#475569] mt-4">
+          Assurez-vous que tous vos flux d'envoi (transactionnels, marketing, CRM…) sont bien couverts par SPF et DKIM avant de passer à reject.
+        </p>
+      </div>
+    )
+  }
+
+  /* dmarcVerdict === 'protégé' */
   return (
-    <div className="mt-8 rounded-2xl bg-gradient-to-br from-[#1A1F2E] to-[#0f172a] border border-[#2563EB]/30 p-6 sm:p-8 text-center">
-      <h2 className="text-lg font-bold text-[#F8FAFC] mb-2">Besoin d'aide pour corriger votre configuration ?</h2>
-      <p className="text-sm text-[#94A3B8] mb-6 max-w-xl mx-auto">
-        ShadowPulse peut auditer et surveiller votre domaine en continu, vous alerter dès qu'un problème apparaît, et vous accompagner dans la mise en œuvre de DMARC, SPF et DKIM.
-      </p>
+    <div className="rounded-2xl bg-[#1A1F2E] border border-[#1E3A5F]/60 p-6 sm:p-8">
+      <h2 className="text-lg font-bold text-[#F8FAFC] mb-4">Pour aller plus loin</h2>
+      <ul className="space-y-3 text-sm text-[#94A3B8]">
+        <li className="flex gap-3">
+          <span className="text-emerald-400 flex-shrink-0 mt-0.5">›</span>
+          <span>
+            <strong className="text-[#F8FAFC]">Rapports DMARC</strong> — analysez régulièrement les rapports
+            d'agrégats (rua) pour détecter des sources d'envoi non autorisées. Des services comme dmarcian,
+            Postmark ou Valimail simplifient cette lecture.
+          </span>
+        </li>
+        <li className="flex gap-3">
+          <span className="text-emerald-400 flex-shrink-0 mt-0.5">›</span>
+          <span>
+            <strong className="text-[#F8FAFC]">DKIM</strong> — vérifiez que vos flux d'envoi (transactionnels,
+            marketing, CRM…) signent bien avec DKIM et que la clé est en adkim=s pour un alignement strict.
+          </span>
+        </li>
+        <li className="flex gap-3">
+          <span className="text-emerald-400 flex-shrink-0 mt-0.5">›</span>
+          <span>
+            <strong className="text-[#F8FAFC]">Domaines proches</strong> — les attaquants enregistrent des
+            variantes de votre domaine (typosquatting, homoglyphes). Surveillez les enregistrements proches
+            du vôtre et publiez un DMARC p=reject sur vos domaines défensifs.
+          </span>
+        </li>
+      </ul>
+    </div>
+  )
+}
+
+/* ─── CTA section ─── */
+function CTABlock({ active }) {
+  const title = active
+    ? "Besoin de surveiller en continu ?"
+    : "Un point de 30 minutes ?"
+  const body = active
+    ? "ShadowPulse surveille votre domaine en continu, vous alerte dès qu'un rapport DMARC signale une anomalie, et suit les tentatives d'usurpation autour de votre marque."
+    : "ShadowPulse peut vous accompagner dans la mise en œuvre de DMARC, SPF et DKIM, et surveiller votre domaine une fois la configuration en place."
+
+  return (
+    <div className="rounded-2xl bg-gradient-to-br from-[#1A1F2E] to-[#0f172a] border border-[#2563EB]/30 p-6 sm:p-8 text-center">
+      <h2 className="text-lg font-bold text-[#F8FAFC] mb-2">{title}</h2>
+      <p className="text-sm text-[#94A3B8] mb-6 max-w-xl mx-auto">{body}</p>
       <div className="flex flex-col sm:flex-row gap-3 justify-center">
         <a
           href={CALENDLY}
@@ -154,6 +232,65 @@ function CTABlock() {
       </div>
     </div>
   )
+}
+
+/* ─── Global verdict config ─── */
+function globalConfig(dmarc) {
+  const dv = dmarc.verdict
+
+  if (dv === 'protégé') {
+    const messages = ["Les messageries rejettent les faux emails envoyés en votre nom."]
+    if (!dmarc.rua) messages.push("Aucun rapport n'est configuré : vous ne voyez pas les tentatives d'usurpation.")
+    return {
+      color: 'green',
+      title: 'Protection active',
+      messages,
+      disclaimer: false,
+      section: 'goFurther',
+      ctaActive: true,
+    }
+  }
+  if (dv === 'quarantaine') {
+    return {
+      color: 'amber',
+      title: 'Protection active (quarantaine)',
+      messages: ["Les faux emails sont placés en spam. L'étape suivante est la politique reject."],
+      disclaimer: false,
+      section: 'goFurther',
+      ctaActive: true,
+    }
+  }
+  if (dv === 'quarantaine partielle') {
+    return {
+      color: 'amber',
+      title: 'Protection partielle',
+      messages: [`Seuls ${dmarc.pct} % des faux emails sont traités par la politique DMARC.`],
+      disclaimer: false,
+      section: 'howToFix',
+      ctaActive: false,
+    }
+  }
+  if (dv === 'surveillance') {
+    return {
+      color: 'amber',
+      title: 'Surveillance seulement',
+      messages: ["Les faux emails sont observés mais pas bloqués."],
+      disclaimer: true,
+      section: 'howToFix',
+      ctaActive: false,
+    }
+  }
+  /* absent, invalid, error, timeout */
+  return {
+    color: 'red',
+    title: dv === 'absent' ? 'Aucune protection DMARC' : 'Erreur d\'analyse',
+    messages: dv === 'absent'
+      ? ["Rien n'empêche l'envoi de faux emails en votre nom."]
+      : [],
+    disclaimer: dv === 'absent',
+    section: 'howToFix',
+    ctaActive: false,
+  }
 }
 
 /* ─── Main page ─── */
@@ -192,9 +329,13 @@ export default function Diagnostic() {
         lookupMX(normalized),
       ])
 
-      const mxResult = analyzeMX(mxRes)
+      const mxResult   = analyzeMX(mxRes)
       const dmarcResult = analyzeDMARC(dmarcRes)
-      if (!mxResult.present && dmarcResult.verdict !== 'absent' && dmarcResult.verdict !== 'error' && dmarcResult.verdict !== 'timeout') {
+
+      if (!mxResult.present
+          && dmarcResult.verdict !== 'absent'
+          && dmarcResult.verdict !== 'error'
+          && dmarcResult.verdict !== 'timeout') {
         dmarcResult.issues = [...dmarcResult.issues, "Ce domaine n'a pas de serveur de messagerie : DMARC est peu pertinent."]
       }
 
@@ -215,13 +356,12 @@ export default function Diagnostic() {
     run()
   }
 
-  /* Global verdict — driven by DMARC only */
-  let globalVerdict = null
-  if (results) {
-    const dv = results.dmarc.verdict
-    if (dv === 'protégé') globalVerdict = 'protégé'
-    else if (dv === 'quarantaine' || dv === 'quarantaine partielle') globalVerdict = 'surveillance'
-    else globalVerdict = 'absent'
+  const cfg = results ? globalConfig(results.dmarc) : null
+
+  const COLOR = {
+    green: { wrap: 'bg-emerald-500/5 border-emerald-500/30', icon: 'bg-emerald-500/20', text: 'text-emerald-400', sym: '✓' },
+    amber: { wrap: 'bg-amber-500/5  border-amber-500/30',   icon: 'bg-amber-500/20',   text: 'text-amber-400',   sym: '~' },
+    red:   { wrap: 'bg-red-500/5    border-red-500/30',     icon: 'bg-red-500/20',     text: 'text-red-400',     sym: '✗' },
   }
 
   return (
@@ -305,37 +445,27 @@ export default function Diagnostic() {
         )}
 
         {/* Results */}
-        {results && !loading && (
+        {results && !loading && cfg && (
           <section className="pb-16">
             <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
               {/* Global verdict */}
-              <div className={`rounded-2xl border p-6 flex items-start gap-4 ${
-                globalVerdict === 'protégé'     ? 'bg-emerald-500/5 border-emerald-500/30' :
-                globalVerdict === 'surveillance' ? 'bg-amber-500/5  border-amber-500/30'   :
-                                                   'bg-red-500/5    border-red-500/30'
-              }`}>
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-xl ${
-                  globalVerdict === 'protégé'      ? 'bg-emerald-500/20' :
-                  globalVerdict === 'surveillance'  ? 'bg-amber-500/20'   :
-                                                      'bg-red-500/20'
-                }`} aria-hidden="true">
-                  {globalVerdict === 'protégé' ? '✓' : globalVerdict === 'surveillance' ? '~' : '✗'}
+              <div className={`rounded-2xl border p-6 flex items-start gap-4 ${COLOR[cfg.color].wrap}`}>
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-xl ${COLOR[cfg.color].icon}`} aria-hidden="true">
+                  {COLOR[cfg.color].sym}
                 </div>
                 <div>
-                  <p className={`font-bold text-base capitalize ${
-                    globalVerdict === 'protégé'      ? 'text-emerald-400' :
-                    globalVerdict === 'surveillance'  ? 'text-amber-400'   : 'text-red-400'
-                  }`}>
-                    {globalVerdict === 'protégé'
-                      ? `${domain} — Protection active`
-                      : globalVerdict === 'surveillance'
-                      ? `${domain} — Surveillance en place, protection incomplète`
-                      : `${domain} — Protection insuffisante`}
+                  <p className={`font-bold text-base ${COLOR[cfg.color].text}`}>
+                    {domain} — {cfg.title}
                   </p>
-                  <p className="text-xs text-[#94A3B8] mt-1">
-                    Cela ne signifie pas qu'il y ait eu usurpation : c'est un point de configuration à corriger de manière préventive.
-                  </p>
+                  {cfg.messages.map((msg, i) => (
+                    <p key={i} className="text-sm text-[#94A3B8] mt-1">{msg}</p>
+                  ))}
+                  {cfg.disclaimer && (
+                    <p className="text-xs text-[#475569] mt-2">
+                      Cela ne signifie pas qu'il y ait eu usurpation : c'est un point de configuration à corriger de manière préventive.
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -347,23 +477,28 @@ export default function Diagnostic() {
 
                 <Row
                   label="DMARC (_dmarc)"
-                  badge={{ verdict: results.dmarc.verdict, label: verdictLabel(results.dmarc.verdict, results.dmarc.pct) }}
+                  badge={{ verdict: results.dmarc.verdict, label: dmarcBadgeLabel(results.dmarc) }}
                   issues={results.dmarc.issues}
                   raw={results.dmarc.raw}
                 />
 
                 <Row
                   label="SPF (v=spf1)"
-                  badge={{ verdict: results.spf.verdict, label: verdictLabel(results.spf.verdict) }}
+                  badge={{ verdict: results.spf.verdict, label: spfBadgeLabel(results.spf) }}
                   issues={results.spf.issues}
                   raw={results.spf.raw}
                 />
 
                 <Row
                   label="MX (serveurs de messagerie)"
-                  badge={{ verdict: results.mx.verdict, label: results.mx.present ? `${results.mx.count} enregistrement${results.mx.count > 1 ? 's' : ''}` : 'Absent' }}
+                  badge={{
+                    verdict: results.mx.verdict,
+                    label: results.mx.present
+                      ? `${results.mx.count} enregistrement${results.mx.count > 1 ? 's' : ''}`
+                      : 'Absent',
+                  }}
                   issues={results.mx.present ? [] : ['Aucun serveur de messagerie configuré.']}
-                  raw={null}
+                  raw={results.mx.present ? results.mx.records.join('\n') : null}
                 />
 
                 <div className="px-4 py-3 text-xs text-[#475569]">
@@ -391,8 +526,12 @@ export default function Diagnostic() {
                 </div>
               )}
 
-              <HowToFix domain={domain} />
-              <CTABlock />
+              {cfg.section === 'goFurther'
+                ? <GoFurther domain={domain} dmarcVerdict={results.dmarc.verdict} />
+                : <HowToFix  domain={domain} dmarcVerdict={results.dmarc.verdict} pct={results.dmarc.pct} />
+              }
+
+              <CTABlock active={cfg.ctaActive} />
             </div>
           </section>
         )}
@@ -402,12 +541,29 @@ export default function Diagnostic() {
   )
 }
 
-function verdictLabel(v, pct) {
+function dmarcBadgeLabel(dmarc) {
   const map = {
-    protégé: 'Protégé', quarantaine: 'Quarantaine', 'quarantaine partielle': `Quarantaine partielle (pct=${pct ?? ''})`,
-    surveillance: 'Surveillance', strict: 'Strict (-all)', acceptable: 'Acceptable (~all)',
-    faible: 'Faible (?all)', dangereux: 'Dangereux (+all)', absent: 'Absent',
-    invalid: 'Invalide', timeout: 'Timeout', error: 'Erreur',
+    protégé:                 'Rejet (reject)',
+    quarantaine:             'Quarantaine',
+    'quarantaine partielle': `Quarantaine partielle (pct=${dmarc.pct})`,
+    surveillance:            'Surveillance (none)',
+    absent:                  'Absent',
+    invalid:                 'Invalide',
+    timeout:                 'Timeout',
+    error:                   'Erreur',
   }
-  return map[v] || v
+  return map[dmarc.verdict] || dmarc.verdict
+}
+
+function spfBadgeLabel(spf) {
+  return {
+    strict:      'Strict (-all)',
+    acceptable:  'Acceptable (~all)',
+    faible:      'Faible (?all)',
+    dangereux:   'Dangereux (+all)',
+    absent:      'Absent',
+    invalid:     'Invalide',
+    timeout:     'Timeout',
+    error:       'Erreur',
+  }[spf.verdict] || spf.verdict
 }

@@ -142,10 +142,10 @@ export function analyzeSPF({ records, nxdomain, error, timedOut }) {
 
 /* ─── MX analysis ─── */
 export function analyzeMX({ records, nxdomain, error, timedOut }) {
-  if (timedOut)  return { verdict: 'timeout', present: false }
-  if (error)     return { verdict: 'error',   present: false }
-  if (nxdomain || records.length === 0) return { verdict: 'absent', present: false }
-  return { verdict: 'présent', present: true, count: records.length }
+  if (timedOut)  return { verdict: 'timeout', present: false, records: [] }
+  if (error)     return { verdict: 'error',   present: false, records: [] }
+  if (nxdomain || records.length === 0) return { verdict: 'absent', present: false, records: [] }
+  return { verdict: 'présent', present: true, count: records.length, records }
 }
 
 /* ─── helpers ─── */

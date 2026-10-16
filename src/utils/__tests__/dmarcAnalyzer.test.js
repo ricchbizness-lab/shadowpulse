@@ -254,4 +254,74 @@ describe('analyzeMX', () => {
     const r = analyzeMX({ records: [], nxdomain: false, error: null, timedOut: true })
     expect(r.verdict).toBe('timeout')
   })
+
+  it('returns records in result', () => {
+    const r = analyzeMX({
+      records: ['10 mail.exemple.fr.', '20 mail2.exemple.fr.'],
+      nxdomain: false, error: null, timedOut: false,
+    })
+    expect(r.count).toBe(2)
+    expect(r.records).toEqual(['10 mail.exemple.fr.', '20 mail2.exemple.fr.'])
+  })
+})
+
+/* ─── globalConfig scenarios ─── */
+describe('verdict scenarios (real-world)', () => {
+  // google.com → reject
+  it('google.com scenario: p=reject pct=100 → protégé', () => {
+    const r = analyzeDMARC({
+      records: ['v=DMARC1; p=reject; rua=mailto:mailauth-reports@google.com; pct=100'],
+      nxdomain: false, error: null, timedOut: false,
+    })
+    expect(r.verdict).toBe('protégé')
+    expect(r.policy).toBe('reject')
+    expect(r.pct).toBe(100)
+  })
+
+  // shadowpulse.fr → quarantine without pct (defaults to 100)
+  it('shadowpulse.fr scenario: p=quarantine no pct → quarantaine', () => {
+    const r = analyzeDMARC({
+      records: ['v=DMARC1; p=quarantine'],
+      nxdomain: false, error: null, timedOut: false,
+    })
+    expect(r.verdict).toBe('quarantaine')
+    expect(r.pct).toBe(100)
+  })
+
+  // bs-experts.fr → none
+  it('bs-experts.fr scenario: p=none → surveillance', () => {
+    const r = analyzeDMARC({
+      records: ['v=DMARC1; p=none; rua=mailto:dmarc@bs-experts.fr'],
+      nxdomain: false, error: null, timedOut: false,
+    })
+    expect(r.verdict).toBe('surveillance')
+    expect(r.policy).toBe('none')
+  })
+
+  // aaci.fr → absent
+  it('aaci.fr scenario: no DMARC → absent', () => {
+    const r = analyzeDMARC({ records: [], nxdomain: false, error: null, timedOut: false })
+    expect(r.verdict).toBe('absent')
+    expect(r.issues[0]).toMatch(/DMARC/)
+  })
+
+  // quarantine pct=50 → quarantaine partielle
+  it('pct=50 scenario: p=quarantine pct=50 → quarantaine partielle', () => {
+    const r = analyzeDMARC({
+      records: ['v=DMARC1; p=quarantine; pct=50'],
+      nxdomain: false, error: null, timedOut: false,
+    })
+    expect(r.verdict).toBe('quarantaine partielle')
+    expect(r.pct).toBe(50)
+  })
+
+  // reject without rua → protégé, no rua
+  it('reject without rua → protégé with rua=null', () => {
+    const r = analyzeDMARC({
+      records: ['v=DMARC1; p=reject; pct=100'],
+      nxdomain: false, error: null, timedOut: false,
+    })
+    expect(r.verdict).toBe('protégé')
+    expect(r.rua).toBeNull()
+  })
 })
