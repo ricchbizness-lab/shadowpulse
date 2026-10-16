@@ -15,6 +15,7 @@ export default defineConfig({
         mentionsLegales: resolve(root, 'mentions-legales/index.html'),
         politiqueConfidentialite: resolve(root, 'politique-de-confidentialite/index.html'),
         cgv: resolve(root, 'cgv/index.html'),
+        diagnostic: resolve(root, 'diagnostic/index.html'),
       },
     },
   },

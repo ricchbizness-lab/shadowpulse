@@ -188,10 +188,10 @@ function HeroSection() {
             <IconArrowRight size={18} />
           </a>
           <a
-            href="#solution"
+            href="/diagnostic/"
             className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl text-base font-semibold text-[#94A3B8] border border-[#1E3A5F] hover:border-[#2563EB]/50 hover:text-white transition-all duration-200 cursor-pointer"
           >
-            Découvrir la solution
+            Diagnostic DNS gratuit
           </a>
         </div>
       </div>
@@ -794,6 +794,15 @@ function ContactSection() {
 
 /* ─── App ─── */
 export default function App() {
+  useEffect(() => {
+    const hash = window.location.hash
+    if (!hash) return
+    requestAnimationFrame(() => {
+      const el = document.querySelector(hash)
+      if (el) el.scrollIntoView({ behavior: 'smooth' })
+    })
+  }, [])
+
   return (
     <>
       <Navbar />
