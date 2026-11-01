@@ -3,7 +3,7 @@ import LegalLayout from '../components/LegalLayout.jsx'
 
 export default function Cgv() {
   return (
-    <LegalLayout title="Conditions Générales de Vente" updated="9 août 2026">
+    <LegalLayout title="Conditions G&#233;n&#233;rales de Vente" updated="1er novembre 2026">
       <p className="legal-meta">
         Les présentes Conditions Générales de Vente (CGV) régissent les relations
         contractuelles entre PL &amp; PR Partners (SIREN 949 324 719), exploitant le service ShadowPulse, et ses clients professionnels souscrivant
@@ -12,19 +12,15 @@ export default function Cgv() {
 
       <h2>Article 1 — Objet</h2>
       <p>
-        PL &amp; PR Partners (SIREN 949 324 719), exploitant le service ShadowPulse, propose des services d'abonnement mensuel de Cyber Threat
-        Intelligence (CTI) et de Digital Risk Monitoring destinés aux PME et cabinets
-        comptables, incluant notamment l'audit de surface d'attaque, le monitoring
-        continu, les alertes contextualisées et les intégrations tierces décrites sur
-        le site.
+        PL &amp; PR Partners (SIREN 949 324 719), exploitant le service ShadowPulse, propose des services d'abonnement mensuel de surveillance email et d'exposition num&#233;rique destin&#233;s aux cabinets comptables, incluant notamment le monitoring continu des domaines, alertes et rapports d&#233;crits sur le site.
       </p>
 
       <h2>Article 2 — Offres et tarifs</h2>
       <p>ShadowPulse propose trois formules d'abonnement :</p>
       <ul>
-        <li><strong>Essentiel</strong> — 290 € HT / mois</li>
-        <li><strong>Premium</strong> — 590 € HT / mois</li>
-        <li><strong>Enterprise</strong> — sur devis, selon le périmètre et le nombre d'entités couvertes</li>
+        <li><strong>Surveillance</strong> — 149 &#8364; HT / mois (2 domaines, contr&#244;le mensuel, alerte J+1 ouvr&#233;, rapport PDF mensuel, cartographie initiale incluse)</li>
+        <li><strong>Surveillance + accompagnement</strong> — 290 &#8364; HT / mois (m&#234;mes inclus + point mensuel 30 min, aide DNS, note de veille mensuelle)</li>
+        <li><strong>Enterprise</strong> — sur devis, selon le p&#233;rim&#232;tre et le nombre d'entit&#233;s couvertes (r&#233;seaux de cabinets, infog&#233;rants, revendeurs)</li>
       </ul>
       <p>
         Les tarifs sont exprimés hors taxes et sont susceptibles d'évoluer ; toute
