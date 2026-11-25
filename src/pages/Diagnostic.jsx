@@ -91,6 +91,33 @@ function Row({ label, badge, issues, raw }) {
 function HowToFix({ domain, dmarcVerdict, pct }) {
   const d = domain || 'votre-domaine.fr'
 
+  if (dmarcVerdict === 'noMX') {
+    return (
+      <div className="rounded-2xl bg-[#1A1F2E] border border-[#1E3A5F]/60 p-6 sm:p-8">
+        <h2 className="text-lg font-bold text-[#F8FAFC] mb-4">Domaine sans messagerie</h2>
+        <p className="text-sm text-[#94A3B8] mb-4">
+          Ce domaine ne g&#232;re pas d'emails. Pour &#233;viter qu'il soit usurp&#233; &#224; des fins de phishing, publiez
+          un SPF de rejet et un DMARC <code className="text-[#06B6D4]">p=reject</code> afin que les
+          messageries refusent tout email pr&#233;tendant venir de ce domaine.
+        </p>
+        <div className="space-y-4">
+          <div>
+            <p className="text-xs font-semibold text-[#475569] uppercase tracking-wider mb-2">SPF — interdire tout envoi</p>
+            <pre className="text-xs text-[#06B6D4] bg-[#0B1929] rounded-lg p-3 overflow-x-auto border border-[#1E3A5F]/40 leading-relaxed">
+{`${d}  TXT  "v=spf1 -all"`}
+            </pre>
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-[#475569] uppercase tracking-wider mb-2">DMARC — rejeter les tentatives d'usurpation</p>
+            <pre className="text-xs text-[#06B6D4] bg-[#0B1929] rounded-lg p-3 overflow-x-auto border border-[#1E3A5F]/40 leading-relaxed">
+{`_dmarc.${d}  TXT  "v=DMARC1; p=reject; pct=100"`}
+            </pre>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (dmarcVerdict === 'quarantaine partielle') {
     return (
       <div className="rounded-2xl bg-[#1A1F2E] border border-[#1E3A5F]/60 p-6 sm:p-8">
@@ -237,8 +264,19 @@ function CTABlock({ active }) {
 }
 
 /* ─── Global verdict config ─── */
-function globalConfig(dmarc) {
+function globalConfig(dmarc, noMX = false) {
   const dv = dmarc.verdict
+
+  if (noMX) {
+    return {
+      color: 'amber',
+      title: 'Domaine sans messagerie',
+      messages: ["Ce domaine n'a pas de serveur de messagerie (MX absent). Aucun email ne peut &#234;tre re&#231;u ni envoy&#233; depuis ce domaine."],
+      disclaimer: false,
+      section: 'noMX',
+      ctaActive: false,
+    }
+  }
 
   if (dv === 'protégé') {
     const messages = ["Les messageries rejettent les faux emails envoyés en votre nom."]
@@ -358,7 +396,8 @@ export default function Diagnostic() {
     run()
   }
 
-  const cfg = results ? globalConfig(results.dmarc) : null
+  const noMX = results ? !results.mx.present : false
+  const cfg = results ? globalConfig(results.dmarc, noMX) : null
 
   const COLOR = {
     green: { wrap: 'bg-emerald-500/5 border-emerald-500/30', icon: 'bg-emerald-500/20', text: 'text-emerald-400', sym: '✓' },
@@ -530,6 +569,8 @@ export default function Diagnostic() {
 
               {cfg.section === 'goFurther'
                 ? <GoFurther domain={domain} dmarcVerdict={results.dmarc.verdict} />
+                : cfg.section === 'noMX'
+                ? <HowToFix  domain={domain} dmarcVerdict="noMX" pct={null} />
                 : <HowToFix  domain={domain} dmarcVerdict={results.dmarc.verdict} pct={results.dmarc.pct} />
               }
 

@@ -3,7 +3,7 @@ import LegalLayout from '../components/LegalLayout.jsx'
 
 export default function PolitiqueConfidentialite() {
   return (
-    <LegalLayout title="Politique de confidentialité" updated="15 octobre 2026">
+    <LegalLayout title="Politique de confidentialit&#233;" updated="1er novembre 2026">
       <p className="legal-meta">
         PL &amp; PR Partners (SIREN 949 324 719), qui exploite le service ShadowPulse, accorde une attention particulière à la protection des données
         personnelles de ses utilisateurs et prospects, conformément au Règlement Général
@@ -84,9 +84,8 @@ export default function PolitiqueConfidentialite() {
         les déduit à partir de sources publiques.
       </p>
       <p>
-        <strong>Finalité :</strong> prospection commerciale B2B en rapport direct avec
-        l'activité professionnelle du destinataire (services de cybersécurité et de
-        Digital Risk Monitoring).
+        <strong>Finalit&#233; :</strong> prospection commerciale B2B en rapport direct avec
+        l'activit&#233; professionnelle du destinataire (surveillance email et exposition num&#233;rique pour cabinets comptables).
       </p>
       <p>
         <strong>Base légale :</strong> intérêt légitime (art. 6(1)(f) du RGPD) —

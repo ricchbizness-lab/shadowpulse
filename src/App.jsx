@@ -146,7 +146,7 @@ function HeroSection() {
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#1A1F2E]/80 border border-[#2563EB]/30 mb-8 backdrop-blur-sm">
           <span className="w-2 h-2 rounded-full bg-[#06B6D4] flex-shrink-0" style={{ animation: 'pulse-dot 2s ease-in-out infinite' }} aria-hidden="true" />
           <span className="text-xs font-semibold text-[#06B6D4] uppercase tracking-widest">
-            Conforme RGPD · NIS2
+            Diagnostic gratuit · Données publiques uniquement
           </span>
         </div>
 
@@ -154,23 +154,22 @@ function HeroSection() {
           id="hero-heading"
           className="text-4xl sm:text-5xl lg:text-6xl font-bold text-[#F8FAFC] leading-tight mb-6"
         >
-          CTI + Digital Risk Monitoring
+          Surveillance email et exposition numérique
           <span className="block mt-2 bg-gradient-to-r from-[#2563EB] to-[#06B6D4] bg-clip-text text-transparent">
-            pour PME et cabinets comptables
+            pour cabinets comptables
           </span>
         </h1>
 
         <p className="text-lg sm:text-xl text-[#94A3B8] max-w-2xl mx-auto mb-10 leading-relaxed">
-          ShadowPulse surveille les menaces en temps réel, détecte vos expositions numériques
-          et vous alerte avant que l'incident survienne — sans DSI, sans complexité.
+          ShadowPulse surveille en continu la protection email et l'exposition num&#233;rique
+          de votre cabinet — DMARC, SPF, certificats, typosquatting — et vous alerte &#224; J+1 ouvr&#233;.
         </p>
 
         {/* Stats */}
         <div className="flex flex-wrap justify-center gap-8 mb-10">
           {[
-            { value: '43%', label: 'des cyberattaques ciblent les PME' },
-            { value: '<2h', label: 'délai de détection moyen' },
-            { value: '99.9%', label: 'disponibilité du monitoring' },
+            { value: '<2h', label: "d&#233;lai de d&#233;tection moyen" },
+            { value: '99.9%', label: 'disponibilit&#233; du monitoring' },
           ].map((stat, i) => (
             <div key={i} className="text-center">
               <div className="stat-number text-2xl font-bold">{stat.value}</div>
@@ -212,22 +211,22 @@ function ProblemSection() {
     {
       icon: <IconTarget size={22} className="text-[#06B6D4]" />,
       title: 'Cibles de choix pour les cybercriminels',
-      desc: 'Les PME et cabinets comptables détiennent des données sensibles (bilans, liasses fiscales, RIB) sans les défenses d\'une grande entreprise. Ils représentent 43 % des victimes de ransomwares en France.',
+      desc: "Les cabinets comptables d&#233;tiennent des donn&#233;es sensibles (bilans, liasses fiscales, RIB) sans les d&#233;fenses d'une grande entreprise. Ils sont des cibles prioritaires pour les tentatives d'usurpation d'identit&#233; par email.",
     },
     {
       icon: <IconUsers size={22} className="text-[#06B6D4]" />,
-      title: 'Absence de ressources cyber dédiées',
-      desc: 'Sans RSSI ni SOC interne, les PME ne disposent pas des outils pour détecter une compromission. En moyenne, une intrusion reste invisible 207 jours avant d\'être découverte.',
+      title: 'Absence de ressources cyber d&#233;di&#233;es',
+      desc: "Sans RSSI ni SOC interne, les cabinets ne disposent pas des outils pour d&#233;tecter une compromission. En moyenne, une intrusion reste invisible 207 jours avant d'&#234;tre d&#233;couverte.",
     },
     {
       icon: <IconLock size={22} className="text-[#06B6D4]" />,
-      title: 'Conformité RGPD & NIS2 — une obligation',
-      desc: 'La directive NIS2 étend ses obligations aux PME de secteurs essentiels et importants. Une non-conformité expose à des amendes jusqu\'à 10 M€ ou 2 % du CA mondial.',
+      title: 'Fraude au RIB et RGPD',
+      desc: "Un faux email envoy&#233; en votre nom peut d&#233;tourner un virement client. Le RGPD (art. 32) vous impose de s&#233;curiser les donn&#233;es que vous traitez — la protection email en fait partie.",
     },
     {
       icon: <IconBell size={22} className="text-[#06B6D4]" />,
-      title: 'Réputation et continuité d\'activité en jeu',
-      desc: 'Une fuite de données client ou une paralysie par ransomware peut compromettre définitivement la relation de confiance avec vos clients et partenaires financiers.',
+      title: "R&#233;putation et continuit&#233; d'activit&#233; en jeu",
+      desc: "Un email usurp&#233; de votre domaine suffit &#224; d&#233;truire la relation de confiance avec vos clients et partenaires financiers, sans que vous en soyez inform&#233; &#224; temps.",
     },
   ]
 
@@ -277,39 +276,27 @@ function SolutionSection() {
   const features = [
     {
       icon: <IconSearch size={24} className="text-[#2563EB]" />,
-      title: 'Cartographie initiale de votre surface',
-      desc: 'Radiographie complète de vos actifs exposés : domaines, certificats, ports, dark web. Point de départ du monitoring continu — on sait ce qu\'on surveille avant de le surveiller.',
+      title: 'Cartographie initiale',
+      desc: "Inventaire complet de vos domaines, certificats SSL et enregistrements DNS. On sait exactement ce qu'on surveille avant de commencer — inclus d&#232;s la mise en service.",
       badge: 'Onboarding',
     },
     {
       icon: <IconEye size={24} className="text-[#2563EB]" />,
-      title: 'Monitoring continu 24/7',
-      desc: 'Surveillance permanente de vos assets numériques, détection des nouvelles expositions, des fuites de credentials et des mentions sur forums cybercriminels.',
-      badge: 'Temps réel',
+      title: 'Contr&#244;le mensuel automatis&#233;',
+      desc: "V&#233;rification mensuelle de DMARC, SPF, SSL et en-t&#234;tes email. D&#233;tection des d&#233;rives de configuration et des nouveaux domaines typosquatt&#233;s autour de votre marque.",
+      badge: 'Mensuel',
     },
     {
       icon: <IconBell size={24} className="text-[#2563EB]" />,
-      title: 'Alertes contextualisées',
-      desc: 'Notifications priorisées avec contexte opérationnel : criticité, vecteur d\'attaque probable, actions recommandées. Zéro bruit, signal fort.',
-      badge: 'Intelligence',
+      title: 'Alertes et rapport mensuel',
+      desc: "Alerte J+1 ouvr&#233; en cas d'anomalie d&#233;tect&#233;e. Rapport PDF mensuel synth&#233;tisant l'&#233;tat de votre protection email et les actions recommand&#233;es.",
+      badge: 'Rapport',
     },
     {
       icon: <IconShield size={24} className="text-[#2563EB]" />,
-      title: 'CTI (Cyber Threat Intelligence)',
-      desc: 'Flux de renseignements sur les groupes d\'attaquants actifs dans votre secteur, les campagnes en cours et les indicateurs de compromission (IOCs).',
-      badge: 'CTI',
-    },
-    {
-      icon: <IconLink size={24} className="text-[#2563EB]" />,
-      title: 'Intégration GLPI & OpenCTI',
-      desc: 'Synchronisation native avec votre GLPI pour la gestion d\'incidents et OpenCTI pour la corrélation de renseignements. API REST disponible.',
-      badge: 'Intégrations',
-    },
-    {
-      icon: <IconLock size={24} className="text-[#2563EB]" />,
-      title: 'Conformité RGPD / NIS2',
-      desc: 'Tableaux de bord de conformité, journaux d\'audit exportables, rapports prêts pour votre DPO ou pour répondre à une obligation réglementaire.',
-      badge: 'Compliance',
+      title: 'Accompagnement &#224; la correction',
+      desc: "Avec l'offre Surveillance + accompagnement : point mensuel de 30 min, aide &#224; la mise &#224; jour des enregistrements DNS et note de veille mensuelle sur les menaces email.",
+      badge: 'Accompagnement',
     },
   ]
 
@@ -333,7 +320,7 @@ function SolutionSection() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {features.map((feat, i) => {
             const cardRef = useFadeIn()
             return (
@@ -367,61 +354,54 @@ function PricingSection() {
 
   const plans = [
     {
-      name: 'Essentiel',
-      price: '290',
-      desc: 'Pour les TPE et cabinets jusqu\'à 20 collaborateurs',
+      name: 'Surveillance',
+      price: '149',
+      badge: 'Pour d&#233;marrer',
+      desc: '2 domaines · contr&#244;le mensuel complet',
       popular: false,
       features: [
-        { label: 'Cartographie initiale + mise en surveillance', included: true },
-        { label: 'Monitoring 5 domaines', included: true },
-        { label: 'Alertes email (délai 4h)', included: true },
-        { label: 'Rapport mensuel PDF', included: true },
-        { label: 'Dark web monitoring basique', included: true },
-        { label: 'CTI — flux de menaces sectoriels', included: false },
-        { label: 'Alertes temps réel (< 30 min)', included: false },
-        { label: 'Intégration GLPI / OpenCTI', included: false },
-        { label: 'Tableau de bord conformité NIS2', included: false },
-        { label: 'Support dédié & SLA garanti', included: false },
+        { label: 'Cartographie initiale incluse', included: true },
+        { label: '2 domaines surveill&#233;s', included: true },
+        { label: 'Contr&#244;le mensuel DMARC / SPF / SSL / typosquatting', included: true },
+        { label: 'Alerte J+1 ouvr&#233; en cas d\'anomalie', included: true },
+        { label: 'Rapport PDF mensuel', included: true },
+        { label: 'Point mensuel 30 min + aide DNS', included: false },
+        { label: 'Note de veille mensuelle', included: false },
       ],
       cta: 'Commencer',
       color: 'border-[#1E3A5F]/60',
     },
     {
-      name: 'Premium',
-      price: '590',
-      desc: 'Pour les PME et cabinets jusqu\'à 100 collaborateurs',
+      name: 'Surveillance + accompagnement',
+      price: '290',
+      badge: null,
+      desc: 'Tout Surveillance + suivi personnalis&#233;',
       popular: true,
       features: [
-        { label: 'Cartographie initiale + mise en surveillance', included: true },
-        { label: 'Monitoring 20 domaines', included: true },
-        { label: 'Alertes email + SMS (délai 30 min)', included: true },
-        { label: 'Rapports hebdomadaires & mensuels', included: true },
-        { label: 'Dark web monitoring avancé', included: true },
-        { label: 'CTI — flux de menaces sectoriels', included: true },
-        { label: 'Alertes temps réel (< 30 min)', included: true },
-        { label: 'Intégration GLPI / OpenCTI', included: true },
-        { label: 'Tableau de bord conformité NIS2', included: false },
-        { label: 'Support dédié & SLA garanti', included: false },
+        { label: 'Cartographie initiale incluse', included: true },
+        { label: '2 domaines surveill&#233;s', included: true },
+        { label: 'Contr&#244;le mensuel DMARC / SPF / SSL / typosquatting', included: true },
+        { label: 'Alerte J+1 ouvr&#233; en cas d\'anomalie', included: true },
+        { label: 'Rapport PDF mensuel', included: true },
+        { label: 'Point mensuel 30 min + aide DNS', included: true },
+        { label: 'Note de veille mensuelle', included: true },
       ],
-      cta: 'Démarrer — Offre la plus populaire',
+      cta: 'D&#233;marrer',
       color: 'border-[#2563EB]',
     },
     {
       name: 'Enterprise',
       price: null,
-      desc: 'Pour les groupes, réseaux de cabinets et structures multi-entités',
+      badge: null,
+      desc: 'R&#233;seaux de cabinets, infog&#233;rants, revendeurs',
       popular: false,
       features: [
-        { label: 'Cartographie initiale + mise en surveillance', included: true },
-        { label: 'Monitoring domaines illimité', included: true },
-        { label: 'Alertes multicanal temps réel', included: true },
-        { label: 'Rapports sur mesure', included: true },
-        { label: 'Dark web monitoring premium', included: true },
-        { label: 'CTI — flux de menaces sectoriels', included: true },
-        { label: 'Alertes temps réel (< 30 min)', included: true },
-        { label: 'Intégration GLPI / OpenCTI', included: true },
-        { label: 'Tableau de bord conformité NIS2', included: true },
-        { label: 'Support dédié & SLA garanti', included: true },
+        { label: 'P&#233;rim&#232;tre sur mesure', included: true },
+        { label: 'Domaines illimit&#233;s', included: true },
+        { label: 'Contr&#244;le mensuel DMARC / SPF / SSL / typosquatting', included: true },
+        { label: 'Alertes et rapports sur mesure', included: true },
+        { label: 'Point mensuel d&#233;di&#233; + aide DNS', included: true },
+        { label: 'Note de veille mensuelle', included: true },
       ],
       cta: 'Nous contacter',
       color: 'border-[#1E3A5F]/60',
@@ -458,14 +438,19 @@ function PricingSection() {
                 {plan.popular && (
                   <div className="absolute -top-4 left-1/2 -translate-x-1/2">
                     <span className="bg-gradient-to-r from-[#2563EB] to-[#1D4ED8] text-white text-xs font-bold px-4 py-1.5 rounded-full whitespace-nowrap glow-blue">
-                      Le plus populaire
+                      Recommand&#233;
                     </span>
                   </div>
                 )}
 
                 <div className="mb-6">
-                  <h3 className="text-lg font-bold text-[#F8FAFC] mb-2">{plan.name}</h3>
-                  <p className="text-sm text-[#94A3B8] mb-4">{plan.desc}</p>
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <h3 className="text-lg font-bold text-[#F8FAFC]">{plan.name}</h3>
+                    {plan.badge && (
+                      <span className="text-xs font-medium text-[#06B6D4] bg-[#06B6D4]/10 px-2 py-0.5 rounded-full border border-[#06B6D4]/20">{plan.badge}</span>
+                    )}
+                  </div>
+                  <p className="text-sm text-[#94A3B8] mb-4 mt-1">{plan.desc}</p>
                   <div className="flex items-end gap-1">
                     {plan.price ? (
                       <>
@@ -586,7 +571,7 @@ function ContactSection() {
 
   const reassurances = [
     { icon: <IconLock size={16} className="text-[#06B6D4]" />, text: 'Infrastructure hébergée en France' },
-    { icon: <IconShield size={16} className="text-[#06B6D4]" />, text: 'Conformité RGPD & NIS2 certifiée' },
+    { icon: <IconShield size={16} className="text-[#06B6D4]" />, text: 'Protection email (DMARC, SPF) incluse' },
     { icon: <IconCheck size={16} className="text-[#06B6D4]" />, text: 'Réponse sous 24h ouvrées' },
   ]
 
@@ -608,9 +593,9 @@ function ContactSection() {
               </span>
             </h2>
             <p className="text-[#94A3B8] text-lg mb-8 leading-relaxed">
-              En 30 minutes, on scanne votre domaine en direct et on vous montre ce que
-              ShadowPulse surveille pour vous en continu — sans engagement, sans frais,
-              zéro accès à votre infrastructure.
+              En 30 minutes, nous passons en revue votre domaine avec vous et vous montrons
+              ce que ShadowPulse surveille en continu — sans engagement, sans frais,
+              z&#233;ro acc&#232;s &#224; votre infrastructure.
             </p>
 
             <div className="space-y-4 mb-10">
